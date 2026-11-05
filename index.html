@@ -94,8 +94,8 @@
   <!-- CONTAINER UTAMA FULL-SCREEN -->
   <div id="app-root" style="position: fixed; inset: 0; z-index: 999999; display: flex; flex-direction: column; background-color: #F3F5F9; overflow: hidden;">
 
-    <!-- TOP BAR MODE PREVIEW & TOMBOL UJI COBA INSTAN -->
-    <div class="bg-slate-900 text-white px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-xs shrink-0 border-b border-slate-800 shadow-md">
+    <!-- TOP BAR MODE PREVIEW & TOMBOL UJI COBA INSTAN (DIHAPUS 100% SAAT DEPLOY / IS_PRODUCTION = true) -->
+    <div id="preview-banner" class="bg-slate-900 text-white px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-xs shrink-0 border-b border-slate-800 shadow-md">
       <div class="flex items-center gap-2">
         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
           <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
@@ -107,11 +107,14 @@
       </div>
 
       <div class="flex items-center flex-wrap gap-1.5">
+        <button type="button" onclick="window.toggleSimulateDeploy(true)" class="px-2.5 py-1 rounded-lg bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-extrabold transition flex items-center gap-1 shadow-sm">
+          🚀 Simulasi Tampilan Deploy (Sembunyikan Bar Uji Coba)
+        </button>
         <button type="button" onclick="window.openLoginModal('STAFF')" class="px-2.5 py-1 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white font-bold transition flex items-center gap-1 shadow-sm">
           🔑 Buka Form Login (Nama + PIN)
         </button>
         <button type="button" onclick="window.quickSwitchUser('STAFF')" class="px-2.5 py-1 rounded-lg bg-[#16C759] hover:bg-emerald-600 text-white font-bold transition flex items-center gap-1 shadow-sm">
-          👩 Quick Karyawan (Bella - Nama & PIN)
+          👩 Quick Karyawan (Bella)
         </button>
         <button type="button" onclick="window.quickSwitchUser('ADMIN')" class="px-2.5 py-1 rounded-lg bg-[#0D8BFF] hover:bg-sky-600 text-white font-bold transition flex items-center gap-1 shadow-sm">
           🛡️ Quick Admin
@@ -119,20 +122,20 @@
         <button type="button" onclick="window.triggerDemoFaceScan()" class="px-2.5 py-1 rounded-lg bg-[#FF5E97] hover:bg-rose-500 text-white font-bold transition flex items-center gap-1 shadow-sm">
           📸 Uji Scan Wajah 3D
         </button>
-        <button type="button" onclick="window.switchMenu('leave')" class="px-2.5 py-1 rounded-lg bg-teal-500 hover:bg-teal-600 text-white font-bold transition flex items-center gap-1 shadow-sm">
-          🏥 Pengajuan Izin/Sakit
-        </button>
         <button type="button" onclick="window.openStorageModal()" class="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold transition flex items-center gap-1 shadow-sm">
           🧹 Kelola Memori DB
-        </button>
-        <button type="button" onclick="window.openWorkHoursModal()" class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold transition flex items-center gap-1 shadow-sm">
-          ⏰ Ubah Jam Kerja
         </button>
         <button type="button" onclick="window.openSqlModal()" class="px-2.5 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold transition flex items-center gap-1">
           🗄️ SQL Supabase
         </button>
       </div>
     </div>
+
+    <!-- TOMBOL FLOATING RESTORE (HANYA MUNCUL SAAT SIMULASI DEPLOY DI CANVAS) -->
+    <button id="restore-preview-pill" type="button" onclick="window.toggleSimulateDeploy(false)" class="hidden fixed top-3 right-3 z-50 px-3.5 py-1.5 rounded-full bg-slate-900/90 hover:bg-slate-900 text-white text-[11px] font-extrabold shadow-xl border border-slate-700 backdrop-blur-md flex items-center gap-1.5 transition">
+      <span>🔧</span>
+      <span>Kembali ke Mode Uji Coba</span>
+    </button>
 
     <!-- WORKSPACE UTAMA (SIDEBAR KIRI + AREA KONTEN BENTO) -->
     <div class="flex-1 flex overflow-hidden relative">
@@ -165,7 +168,7 @@
             <button type="button" onclick="window.switchMenu('overview')" id="nav-btn-overview" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold transition bg-[#0D8BFF] text-white shadow-md shadow-sky-500/25">
               <span class="flex items-center gap-2.5">
                 <span>📊</span>
-                <span>Dashboard Karyawan</span>
+                <span>Ringkasan Bento</span>
               </span>
               <span>▾</span>
             </button>
@@ -178,53 +181,63 @@
             <button type="button" onclick="window.switchMenu('facescan')" id="nav-btn-facescan" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition">
               <span class="flex items-center gap-2.5">
                 <span>📸</span>
-                <span>Scan Wajah 3D (Admin)</span>
+                <span>Terminal Scan Wajah</span>
               </span>
               <span class="px-1.5 py-0.5 rounded-md bg-rose-100 text-rose-600 text-[10px] font-extrabold">LIVE</span>
-            </button>
-
-            <button type="button" onclick="window.switchMenu('schedule')" id="nav-btn-schedule" class="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition">
-              <span>📅</span>
-              <span>Jadwal Shift Mingguan</span>
             </button>
 
             <button type="button" onclick="window.switchMenu('employees')" id="nav-btn-employees" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition">
               <span class="flex items-center gap-2.5">
                 <span>👥</span>
-                <span>Data 40 Staf & Posisi</span>
+                <span>Data 40 Karyawan</span>
               </span>
               <span id="badge-count-emp" class="text-[11px] font-extrabold text-slate-400">40</span>
+            </button>
+
+            <button type="button" onclick="window.switchMenu('schedule')" id="nav-btn-schedule" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition">
+              <span class="flex items-center gap-2.5">
+                <span>📅</span>
+                <span>Jadwal Shift Mingguan</span>
+              </span>
             </button>
 
             <button type="button" onclick="window.switchMenu('leave')" id="nav-btn-leave" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition">
               <span class="flex items-center gap-2.5">
                 <span>🏥</span>
-                <span>Pengajuan Izin/Sakit</span>
+                <span>Pengajuan Sakit/Izin</span>
               </span>
-              <span id="badge-pending-leave" class="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 text-[10px] font-extrabold">2</span>
+              <span id="badge-pending-leave" class="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 text-[10px] font-extrabold">0</span>
             </button>
 
-            <button type="button" onclick="window.switchMenu('reports')" id="nav-btn-reports" class="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition">
-              <span>📈</span>
-              <span>Rekap Jam Kerja & Filter</span>
+            <button type="button" onclick="window.switchMenu('reports')" id="nav-btn-reports" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition">
+              <span class="flex items-center gap-2.5">
+                <span>📈</span>
+                <span>Rekap Jam Kerja</span>
+              </span>
+            </button>
+
+            <button type="button" onclick="window.switchMenu('positions')" id="nav-btn-positions" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition">
+              <span class="flex items-center gap-2.5">
+                <span>⚙️</span>
+                <span>Manajemen Posisi & Jam</span>
+              </span>
             </button>
           </nav>
         </div>
 
-        <!-- Bagian Bawah Sidebar: Pengaturan Jam Kerja & Keluar/Masuk -->
+        <!-- Bagian Bawah Sidebar: Pengaturan Memori & Keluar/Masuk -->
         <div class="pt-4 border-t border-slate-100 space-y-1.5">
+          <div id="sidebar-user-chip" class="px-3.5 py-2 rounded-2xl bg-slate-50 border border-slate-200/70 text-[11px] text-slate-600 font-semibold truncate">
+            👤 Sesi: <strong id="sidebar-session-label" class="text-slate-900">Admin HR</strong>
+          </div>
           <button type="button" onclick="window.openStorageModal()" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold text-emerald-700 bg-emerald-50/80 hover:bg-emerald-100 transition">
             <span class="flex items-center gap-2">
               <span>🧹</span>
               <span>Memori DB Gratis</span>
             </span>
-            <span id="sidebar-db-pct" class="text-[10px] font-extrabold text-emerald-600">0.1%</span>
+            <span id="sidebar-db-pct" class="text-[10px] font-extrabold text-emerald-600">0.01%</span>
           </button>
-          <button type="button" onclick="window.openWorkHoursModal()" class="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition">
-            <span>⚙️</span>
-            <span>Pengaturan Jam & Posisi</span>
-          </button>
-          <button type="button" onclick="window.openLoginModal('STAFF')" class="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition">
+          <button type="button" onclick="window.handleLogout()" class="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition">
             <span>🚪</span>
             <span>Ganti Akun / Keluar</span>
           </button>
@@ -568,6 +581,202 @@
         </section>
 
         <!-- =============================================================== -->
+        <!-- MENU 2: TERMINAL SCAN WAJAH 3D ADMIN & UPLOAD BUCKET SUPABASE   -->
+        <!-- =============================================================== -->
+        <section id="view-facescan" class="hidden space-y-5">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            <!-- Panel Kamera Pemindai Biometrik 3D -->
+            <div class="lg:col-span-7 bento-card p-6">
+              <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                <div>
+                  <h2 class="text-lg font-extrabold text-slate-900">Terminal Scan Wajah 3D & Lokasi GPS</h2>
+                  <p class="text-xs text-slate-500">Verifikasi biometrik wajah karyawan oleh Admin dengan deteksi otomatis Shift 1 / Shift 2.</p>
+                </div>
+                <button type="button" id="btn-webcam-toggle" onclick="window.toggleRealWebcam()" class="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-extrabold transition">
+                  📷 Gunakan Kamera Asli
+                </button>
+              </div>
+
+              <!-- Layar Pemindai -->
+              <div class="relative rounded-3xl bg-slate-950 aspect-video flex items-center justify-center overflow-hidden border-2 border-sky-500/40 mb-4">
+                <video id="real-webcam-video" autoplay playsinline muted class="hidden absolute inset-0 w-full h-full object-cover z-10"></video>
+
+                <!-- Karakter 3D di Dalam Pemindai -->
+                <div id="scanner-3d-stage" class="avatar-3d-float w-56 h-56 flex items-center justify-center z-0"></div>
+
+                <!-- Bingkai Biometrik & Garis Laser -->
+                <div class="biometric-frame absolute w-56 h-56 rounded-3xl border-2 border-dashed border-[#16C759]/80 pointer-events-none z-20"></div>
+                <div class="laser-line z-20"></div>
+
+                <!-- Overlay Informasi Kamera -->
+                <div class="absolute top-3 left-3 right-3 flex items-center justify-between text-xs font-bold text-white z-30">
+                  <span id="scan-overlay-name" class="px-3 py-1 rounded-full bg-slate-900/80 backdrop-blur-md border border-slate-700">Target: -</span>
+                  <span id="scan-overlay-clock" class="px-3 py-1 rounded-full bg-sky-600/90 font-mono">00:00:00 WIB</span>
+                </div>
+                <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs font-bold text-white z-30">
+                  <span id="scan-overlay-confidence" class="px-3 py-1 rounded-full bg-emerald-600/90">Kecocokan Wajah: 98,9%</span>
+                  <span class="px-3 py-1 rounded-full bg-slate-900/80 border border-slate-700">Bucket: <code class="text-sky-300">absensi-media</code></span>
+                </div>
+              </div>
+
+              <!-- Kontrol Pilih Karyawan, Shift, Radius GPS & Upload Bukti -->
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 text-xs">
+                <div>
+                  <label class="block font-bold text-slate-600 mb-1">Pilih Karyawan</label>
+                  <select id="scanner-emp-select" onchange="window.changeFocusedEmployee(this.value)" class="w-full px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 font-extrabold text-slate-900"></select>
+                </div>
+                <div>
+                  <label class="block font-bold text-slate-600 mb-1">Shift Kerja Hari Ini</label>
+                  <select id="scanner-shift-select" class="w-full px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 font-extrabold text-[#0D8BFF]">
+                    <option value="SHIFT_1">Shift 1 (Pagi)</option>
+                    <option value="SHIFT_2">Shift 2 (Siang)</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block font-bold text-slate-600 mb-1">Jarak GPS dari Kantor (Meter)</label>
+                  <input type="number" id="scanner-gps-distance" value="14" min="1" max="5000" class="w-full px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 font-mono font-extrabold text-emerald-700" />
+                </div>
+              </div>
+
+              <!-- Opsional Upload Foto Bukti ke Storage Bucket absensi-media -->
+              <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 mb-4 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div>
+                  <p class="font-extrabold text-slate-700">📎 Lampirkan Foto Bukti ke Bucket <code class="text-[#0D8BFF]">absensi-media</code> (Opsional)</p>
+                  <p class="text-[11px] text-slate-400">Batas maks. 2 MB agar penyimpanan Supabase gratis tetap hemat. Maks radius kantor: <strong id="label-max-radius">100 Meter</strong></p>
+                </div>
+                <input type="file" id="scanner-photo-file" accept="image/jpeg,image/png,image/webp" class="text-[11px] file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:bg-sky-50 file:text-[#0D8BFF] file:font-extrabold" />
+              </div>
+
+              <!-- Tombol Check-In & Check-Out -->
+              <div class="grid grid-cols-2 gap-3">
+                <button type="button" onclick="window.processFaceAttendance('IN')" class="py-3.5 px-4 rounded-2xl bg-[#16C759] hover:bg-emerald-600 text-white font-extrabold text-xs shadow-lg shadow-emerald-500/25 transition flex items-center justify-center gap-2">
+                  <span>✅</span>
+                  <span>Scan Wajah MASUK (Check-In)</span>
+                </button>
+                <button type="button" onclick="window.processFaceAttendance('OUT')" class="py-3.5 px-4 rounded-2xl bg-[#0D8BFF] hover:bg-sky-600 text-white font-extrabold text-xs shadow-lg shadow-sky-500/25 transition flex items-center justify-center gap-2">
+                  <span>🏁</span>
+                  <span>Scan Wajah PULANG (Hitung Jam)</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Riwayat Log Scan Wajah Hari Ini -->
+            <div class="lg:col-span-5 bento-card p-6 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 class="text-base font-extrabold text-slate-900">Log Pemindaian Wajah Terbaru</h3>
+                    <p class="text-xs text-slate-400">Otomatis merekam posisi jabatan, shift, durasi jam & jarak GPS.</p>
+                  </div>
+                  <span id="today-scan-counter" class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-extrabold">0 Log Tercatat</span>
+                </div>
+                <div id="live-scan-log-list" class="space-y-2.5 max-h-[430px] overflow-y-auto pr-1"></div>
+              </div>
+              <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+                <span>Status Koneksi: <strong id="db-conn-indicator" class="text-emerald-600">Siap</strong></span>
+                <button type="button" onclick="window.switchMenu('reports')" class="text-[#0D8BFF] font-extrabold hover:underline">Buka Rekap Lengkap →</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =============================================================== -->
+        <!-- MENU 3: DATA 40 KARYAWAN, LOGIN NAMA+PIN & POSISI JABATAN       -->
+        <!-- =============================================================== -->
+        <section id="view-employees" class="hidden space-y-5">
+          <div class="bento-card p-6">
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+              <div>
+                <h2 class="text-lg font-extrabold text-slate-900">Data Master 40 Karyawan & Posisi Jabatan</h2>
+                <p class="text-xs text-slate-500">Karyawan login cukup menggunakan <strong>Nama Lengkap</strong> dan <strong>PIN</strong> yang terdaftar di tabel ini.</p>
+              </div>
+              <div class="flex items-center flex-wrap gap-2">
+                <button type="button" onclick="window.openAddEmployeeModal()" class="px-4 py-2 rounded-xl bg-[#0D8BFF] hover:bg-sky-600 text-white text-xs font-extrabold shadow-sm transition">
+                  + Tambah Karyawan Baru
+                </button>
+              </div>
+            </div>
+
+            <!-- Filter Pencarian Karyawan -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 text-xs">
+              <input type="text" id="emp-search-input" oninput="window.renderEmployeesTable()" placeholder="Cari nama karyawan atau posisi jabatan..." class="px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 font-semibold" />
+              <select id="emp-dept-filter" onchange="window.renderEmployeesTable()" class="px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 font-bold text-slate-700">
+                <option value="ALL">Semua Departemen</option>
+                <option value="Pengembangan IT">Pengembangan IT</option>
+                <option value="Desain">Desain</option>
+                <option value="SDM & HR">SDM & HR</option>
+                <option value="Manajemen">Manajemen</option>
+                <option value="Operasional">Operasional</option>
+              </select>
+              <select id="emp-shift-filter" onchange="window.renderEmployeesTable()" class="px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 font-bold text-slate-700">
+                <option value="ALL">Semua Shift (Shift 1 & Shift 2)</option>
+                <option value="SHIFT_1">Shift 1 (Pagi)</option>
+                <option value="SHIFT_2">Shift 2 (Siang)</option>
+              </select>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr class="border-b border-slate-200 text-slate-400 uppercase text-[11px]">
+                    <th class="py-3 px-3">Karakter 3D & Nama Login</th>
+                    <th class="py-3 px-3">PIN Login</th>
+                    <th class="py-3 px-3">Posisi / Jabatan</th>
+                    <th class="py-3 px-3">Departemen</th>
+                    <th class="py-3 px-3">Shift Default</th>
+                    <th class="py-3 px-3">Status Wajah</th>
+                    <th class="py-3 px-3 text-right">Aksi Admin</th>
+                  </tr>
+                </thead>
+                <tbody id="employees-tbody" class="divide-y divide-slate-100"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- =============================================================== -->
+        <!-- MENU 4: JADWAL SHIFT MINGGUAN (2 SHIFT & AKUMULASI JAM KERJA)   -->
+        <!-- =============================================================== -->
+        <section id="view-schedule" class="hidden space-y-5">
+          <div class="bento-card p-6">
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+              <div>
+                <h2 class="text-lg font-extrabold text-slate-900">Jadwal Shift Mingguan (Senin s.d. Minggu)</h2>
+                <p class="text-xs text-slate-500">Klik pada badge shift di setiap hari untuk mengubah antara <strong>Shift 1 (Pagi)</strong>, <strong>Shift 2 (Siang)</strong>, atau <strong>Libur</strong>.</p>
+              </div>
+              <div class="flex items-center flex-wrap gap-2">
+                <button type="button" onclick="window.rotateAllWeeklyShifts()" class="px-4 py-2 rounded-xl bg-[#16C759] hover:bg-emerald-600 text-white text-xs font-extrabold shadow-sm transition">
+                  🔄 Putar Rotasi Shift 1 ⇄ Shift 2 Otomatis
+                </button>
+                <button type="button" onclick="window.switchMenu('positions')" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition">
+                  ⚙️ Atur Jam Shift
+                </button>
+              </div>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr class="border-b border-slate-200 text-slate-400 uppercase text-[11px]">
+                    <th class="py-3 px-3">Nama Karyawan</th>
+                    <th class="py-3 px-3">Posisi Jabatan</th>
+                    <th class="py-3 px-1.5 text-center">Sen</th>
+                    <th class="py-3 px-1.5 text-center">Sel</th>
+                    <th class="py-3 px-1.5 text-center">Rab</th>
+                    <th class="py-3 px-1.5 text-center">Kam</th>
+                    <th class="py-3 px-1.5 text-center">Jum</th>
+                    <th class="py-3 px-1.5 text-center">Sab</th>
+                    <th class="py-3 px-1.5 text-center">Min</th>
+                    <th class="py-3 px-3 text-right">Target Jam/Minggu</th>
+                  </tr>
+                </thead>
+                <tbody id="weekly-schedule-tbody" class="divide-y divide-slate-100"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- =============================================================== -->
         <!-- MENU 5: PENGAJUAN SAKIT / IZIN / CUTI (LEAVE & SICK REQUEST)    -->
         <!-- =============================================================== -->
         <section id="view-leave" class="hidden space-y-5">
@@ -771,6 +980,80 @@
           </div>
         </section>
 
+        <!-- =============================================================== -->
+        <!-- MENU 7: MANAJEMEN POSISI JABATAN, JAM KERJA 2 SHIFT & LOKASI GPS-->
+        <!-- =============================================================== -->
+        <section id="view-positions" class="hidden space-y-5">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            <!-- Panel Pengaturan Jam Kerja 2 Shift & Radius Kantor -->
+            <div class="lg:col-span-6 bento-card p-6">
+              <h2 class="text-lg font-extrabold text-slate-900 mb-1">Pengaturan Jam Kerja 2 Shift & Radius GPS Kantor</h2>
+              <p class="text-xs text-slate-500 mb-4">Ubah jam masuk/pulang Shift 1 & Shift 2, batas toleransi keterlambatan, dan titik koordinat kantor.</p>
+
+              <form onsubmit="window.saveInlineWorkHours(event)" class="space-y-4 text-xs">
+                <div class="grid grid-cols-2 gap-3 p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200">
+                  <div>
+                    <label class="block font-extrabold text-emerald-900 mb-1">☀️ Masuk Shift 1</label>
+                    <input type="time" id="inline-s1-in" value="07:00" required class="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 font-bold" />
+                  </div>
+                  <div>
+                    <label class="block font-extrabold text-emerald-900 mb-1">☀️ Pulang Shift 1</label>
+                    <input type="time" id="inline-s1-out" value="15:00" required class="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 font-bold" />
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 p-3.5 rounded-2xl bg-sky-50/70 border border-sky-200">
+                  <div>
+                    <label class="block font-extrabold text-sky-900 mb-1">🌙 Masuk Shift 2</label>
+                    <input type="time" id="inline-s2-in" value="15:00" required class="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 font-bold" />
+                  </div>
+                  <div>
+                    <label class="block font-extrabold text-sky-900 mb-1">🌙 Pulang Shift 2</label>
+                    <input type="time" id="inline-s2-out" value="23:00" required class="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 font-bold" />
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3">
+                  <div>
+                    <label class="block font-bold text-slate-600 mb-1">Toleransi (Menit)</label>
+                    <input type="number" id="inline-late-tol" value="15" class="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 font-bold" />
+                  </div>
+                  <div>
+                    <label class="block font-bold text-slate-600 mb-1">Jam Kerja / Hari</label>
+                    <input type="number" id="inline-daily-hrs" value="8" class="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 font-bold" />
+                  </div>
+                  <div>
+                    <label class="block font-bold text-slate-600 mb-1">Radius GPS (Meter)</label>
+                    <input type="number" id="inline-max-rad" value="100" class="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 font-bold" />
+                  </div>
+                </div>
+
+                <button type="submit" class="w-full py-3 rounded-2xl bg-[#0D8BFF] hover:bg-sky-600 text-white font-extrabold shadow-md transition">
+                  💾 Simpan Perubahan Jam Kerja & Radius Kantor
+                </button>
+              </form>
+            </div>
+
+            <!-- Panel Master Posisi Jabatan -->
+            <div class="lg:col-span-6 bento-card p-6 flex flex-col justify-between">
+              <div>
+                <h2 class="text-lg font-extrabold text-slate-900 mb-1">Daftar Master Posisi / Jabatan</h2>
+                <p class="text-xs text-slate-500 mb-4">Kelola daftar posisi pekerjaan untuk 40 karyawan.</p>
+
+                <div class="flex gap-2 mb-4 text-xs">
+                  <input type="text" id="inline-new-pos" placeholder="Nama posisi baru (misal: Kepala Gudang)" class="flex-1 px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 font-semibold" />
+                  <button type="button" onclick="window.addInlineMasterPosition()" class="px-4 py-2.5 rounded-xl bg-[#16C759] hover:bg-emerald-600 text-white font-extrabold">
+                    + Tambah Posisi
+                  </button>
+                </div>
+
+                <div id="inline-positions-list" class="space-y-2 max-h-72 overflow-y-auto pr-1 text-xs"></div>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-4">Posisi yang ditambahkan otomatis tersedia pada form Karyawan dan Filter Rekap.</p>
+            </div>
+          </div>
+        </section>
+
       </main>
 
       <!-- FLOATING BOTTOM NAVIGATION BAR (UNTUK MOBILE / TABLET) -->
@@ -801,7 +1084,7 @@
     <!-- =============================================================== -->
     <div id="modal-login" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
       <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 relative">
-        <button type="button" onclick="window.closeLoginModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm">✕</button>
+        <button id="btn-close-login-modal" type="button" onclick="window.closeLoginModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm">✕</button>
 
         <div class="flex items-center gap-2.5 mb-5">
           <div class="w-10 h-10 rounded-2xl bg-[#0D8BFF] text-white flex items-center justify-center font-extrabold text-lg">S</div>
@@ -828,9 +1111,9 @@
               <label class="text-xs font-bold text-slate-700">Nama Karyawan</label>
               <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">Tanpa NIK / Email</span>
             </div>
-            <input type="text" id="login-staff-name" list="employee-names-datalist" required value="Bella Putri" placeholder="Ketik nama Anda (contoh: Bella Putri)" class="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-sm font-extrabold text-slate-900 focus:outline-none focus:border-[#16C759]" />
+            <input type="text" id="login-staff-name" list="employee-names-datalist" required placeholder="Ketik nama lengkap Anda..." class="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-sm font-extrabold text-slate-900 focus:outline-none focus:border-[#16C759]" />
             <datalist id="employee-names-datalist"></datalist>
-            <p class="text-[11px] text-slate-400 mt-1">Ketik atau pilih nama Anda dari daftar 40 karyawan.</p>
+            <p id="login-staff-hint" class="text-[11px] text-slate-400 mt-1">Masukkan nama sesuai yang terdaftar oleh Admin HR.</p>
           </div>
 
           <div>
@@ -838,7 +1121,7 @@
               <label class="text-xs font-bold text-slate-700">PIN Karyawan</label>
               <button type="button" onclick="window.togglePinVisibility()" id="btn-show-pin" class="text-[11px] font-bold text-[#0D8BFF] hover:underline">Lihat PIN</button>
             </div>
-            <input type="password" id="login-staff-pin" required value="123456" placeholder="Masukkan PIN (123456)" class="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-sm font-mono font-extrabold tracking-widest text-slate-900 focus:outline-none focus:border-[#16C759]" />
+            <input type="password" id="login-staff-pin" required placeholder="Masukkan PIN rahasia Anda" class="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-sm font-mono font-extrabold tracking-widest text-slate-900 focus:outline-none focus:border-[#16C759]" />
           </div>
 
           <button type="submit" class="w-full py-3.5 rounded-2xl bg-[#16C759] hover:bg-emerald-600 text-white font-extrabold text-xs shadow-lg shadow-emerald-500/25 transition">
@@ -850,11 +1133,11 @@
         <form id="form-admin-login" onsubmit="window.handleAdminLogin(event)" class="space-y-4 hidden">
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1">Email Admin (Supabase Auth)</label>
-            <input type="email" id="login-admin-email" required value="admin@perusahaan.id" class="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-sm font-bold text-slate-900" />
+            <input type="email" id="login-admin-email" required placeholder="email.admin@perusahaan.com" class="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-sm font-bold text-slate-900" />
           </div>
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1">Kata Sandi Admin</label>
-            <input type="password" id="login-admin-pass" required value="admin123" class="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-sm font-bold text-slate-900" />
+            <input type="password" id="login-admin-pass" required placeholder="Masukkan kata sandi Admin" class="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-sm font-bold text-slate-900" />
           </div>
           <button type="submit" class="w-full py-3.5 rounded-2xl bg-[#0D8BFF] hover:bg-sky-600 text-white font-extrabold text-xs shadow-lg shadow-sky-500/25 transition">
             🛡️ Masuk Panel Admin HR
@@ -1205,18 +1488,29 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
   <!-- SCRIPT UTAMA VANILLA JS (100% AMAN TANPA BLOCKING MODULE) -->
   <script>
     (function () {
-      // 1. Konfigurasi Mode Preview & Supabase
-      var IS_PREVIEW = true;
-      var SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';
-      var SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
-      var supabaseClient = null;
+      // ============================================================================
+      // KONFIGURASI DEPLOYMENT SUPABASE
+      // ============================================================================
+      const IS_PREVIEW = false; // UBAH KE false SAAT DEPLOY AGAR BAR UJI COBA & DATA DUMMY HILANG 100%
+      const SUPABASE_URL = "https://oderlxahaxjmgzgtianf.supabase.co";
+      const SUPABASE_ANON_KEY = "sb_publishable_QqhPsG0jI925knC_7QauOg_3mwZD01s";
+      const STORAGE_BUCKET = "absensi-media";
 
+      // Deteksi otomatis Mode Produksi (True jika IS_PREVIEW === false ATAU URL Supabase asli sudah diisi)
+      const IS_PRODUCTION = (!IS_PREVIEW) || (SUPABASE_URL !== "URL_SUPABASE_ANDA" && SUPABASE_URL.startsWith("http"));
+      var simulatedDeployMode = false;
+
+      var supabaseClient = null;
       try {
-        if (!IS_PREVIEW && window.supabase && window.supabase.createClient) {
+        if (SUPABASE_URL !== "URL_SUPABASE_ANDA" && SUPABASE_URL.startsWith("http") && window.supabase && window.supabase.createClient) {
           supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         }
       } catch (err) {
-        console.warn('Mode Preview Aktif:', err);
+        console.warn("Inisialisasi Supabase Client:", err);
+      }
+
+      function isStrictDeployActive() {
+        return IS_PRODUCTION || simulatedDeployMode;
       }
 
       // 2. State Pengaturan Jam Kerja, 2 Shift, Radius GPS & Master Posisi
@@ -1249,8 +1543,8 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
         'Operasional': '#8B5CF6'
       };
 
-      // 3. Data Awal Karyawan (Dapat Diperluas hingga 40 Karyawan dengan 1 Klik)
-      var employeesList = [
+      // Simpan cadangan data demo hanya untuk Mode Preview di Canvas
+      var previewDummyEmployees = [
         {
           id: 'emp-1',
           nik: 'EMP-001',
@@ -1310,71 +1604,11 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
           avatar_style: 'female_bella',
           gps_distance: 11,
           jadwal: ['SHIFT_2', 'SHIFT_2', 'SHIFT_1', 'SHIFT_1', 'SHIFT_2', 'SHIFT_2', 'LIBUR']
-        },
-        {
-          id: 'emp-5',
-          nik: 'EMP-005',
-          nama: 'Rina Wulandari',
-          pin_password: '123456',
-          posisi: 'Manajer Proyek IT',
-          level_posisi: 'Supervisor',
-          departemen: 'Manajemen',
-          email: 'rina.w@perusahaan.id',
-          tanggal_bergabung: '2021-08-22',
-          shift_default: 'SHIFT_1',
-          avatar_style: 'female_hijab',
-          gps_distance: 16,
-          jadwal: ['SHIFT_1', 'SHIFT_1', 'SHIFT_2', 'SHIFT_2', 'SHIFT_1', 'LIBUR', 'LIBUR']
-        },
-        {
-          id: 'emp-6',
-          nik: 'EMP-006',
-          nama: 'Ayu Pratiwi',
-          pin_password: '123456',
-          posisi: 'Koordinator Logistik & Gudang',
-          level_posisi: 'Madya',
-          departemen: 'Operasional',
-          email: 'ayu.p@perusahaan.id',
-          tanggal_bergabung: '2023-07-01',
-          shift_default: 'SHIFT_2',
-          avatar_style: 'female_citra',
-          gps_distance: 28,
-          jadwal: ['SHIFT_2', 'SHIFT_1', 'SHIFT_1', 'SHIFT_2', 'SHIFT_2', 'SHIFT_1', 'LIBUR']
-        },
-        {
-          id: 'emp-7',
-          nik: 'EMP-007',
-          nama: 'Dewi Anggraini',
-          pin_password: '123456',
-          posisi: 'Analis Kualitas Sistem',
-          level_posisi: 'Junior',
-          departemen: 'Pengembangan IT',
-          email: 'dewi.a@perusahaan.id',
-          tanggal_bergabung: '2024-02-14',
-          shift_default: 'SHIFT_1',
-          avatar_style: 'female_bella',
-          gps_distance: 15,
-          jadwal: ['SHIFT_1', 'SHIFT_1', 'SHIFT_1', 'SHIFT_1', 'SHIFT_2', 'SHIFT_2', 'LIBUR']
-        },
-        {
-          id: 'emp-8',
-          nik: 'EMP-008',
-          nama: 'Farah Nabila',
-          pin_password: '123456',
-          posisi: 'Kasir & Frontliner Senior',
-          level_posisi: 'Senior',
-          departemen: 'Operasional',
-          email: 'farah.n@perusahaan.id',
-          tanggal_bergabung: '2023-05-19',
-          shift_default: 'SHIFT_2',
-          avatar_style: 'female_hijab',
-          gps_distance: 18,
-          jadwal: ['SHIFT_2', 'SHIFT_2', 'SHIFT_2', 'SHIFT_1', 'SHIFT_1', 'SHIFT_2', 'LIBUR']
         }
       ];
 
-      // Melengkapi hingga 40 karyawan secara otomatis saat inisialisasi agar kuota 40 langsung terlihat
       var extraNames = [
+        'Rina Wulandari', 'Ayu Pratiwi', 'Dewi Anggraini', 'Farah Nabila',
         'Intan Permata', 'Kartika Sari', 'Larasati Putri', 'Maya Indriani', 'Nisa Amelia',
         'Olivia Wijaya', 'Putri Maharani', 'Qori Handayani', 'Ratna Komala', 'Shinta Bella',
         'Tiara Andini', 'Ulfa Rahmawati', 'Vina Panduwinata', 'Winda Septiani', 'Yuni Shara',
@@ -1387,9 +1621,9 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
       var avatarStyles = ['female_bella', 'female_hijab', 'female_citra'];
 
       for (var i = 0; i < extraNames.length; i++) {
-        var idx = employeesList.length + 1;
+        var idx = previewDummyEmployees.length + 1;
         var shiftDef = idx % 2 === 0 ? 'SHIFT_2' : 'SHIFT_1';
-        employeesList.push({
+        previewDummyEmployees.push({
           id: 'emp-' + idx,
           nik: 'EMP-' + String(idx).padStart(3, '0'),
           nama: extraNames[i],
@@ -1408,8 +1642,7 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
         });
       }
 
-      // 4. Data Log Absensi & Jam Kerja Awal (Rentang Tanggal untuk Filter)
-      var attendanceLogs = [
+      var previewDummyAttendance = [
         {
           id: 'log-1',
           karyawan_id: 'emp-1',
@@ -1443,62 +1676,10 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
           status_lokasi: 'Di Kantor (19m)',
           status_kehadiran: 'Tepat Waktu',
           skor_wajah: 98.7
-        },
-        {
-          id: 'log-3',
-          karyawan_id: 'emp-3',
-          nama_karyawan: 'Citra Lestari',
-          posisi_karyawan: 'Pengembang Fullstack',
-          tanggal: '2026-11-04',
-          shift_kode: 'SHIFT_2',
-          jam_masuk: '15:22',
-          jam_pulang: '23:10',
-          durasi_menit: 468,
-          durasi_teks: '07:48:00',
-          menit_terlambat: 22,
-          jarak_meter: 22,
-          status_lokasi: 'Di Kantor (22m)',
-          status_kehadiran: 'Terlambat (22m)',
-          skor_wajah: 97.9
-        },
-        {
-          id: 'log-4',
-          karyawan_id: 'emp-1',
-          nama_karyawan: 'Bella Putri',
-          posisi_karyawan: 'Desainer UI/UX Madya',
-          tanggal: '2026-11-03',
-          shift_kode: 'SHIFT_1',
-          jam_masuk: '06:58',
-          jam_pulang: '15:20',
-          durasi_menit: 502,
-          durasi_teks: '08:22:00',
-          menit_terlambat: 0,
-          jarak_meter: 12,
-          status_lokasi: 'Di Kantor (12m)',
-          status_kehadiran: 'Tepat Waktu',
-          skor_wajah: 99.4
-        },
-        {
-          id: 'log-5',
-          karyawan_id: 'emp-4',
-          nama_karyawan: 'Nadia Kusuma',
-          posisi_karyawan: 'Supervisor Shift Operasional',
-          tanggal: '2026-11-02',
-          shift_kode: 'SHIFT_2',
-          jam_masuk: '14:55',
-          jam_pulang: '23:05',
-          durasi_menit: 490,
-          durasi_teks: '08:10:00',
-          menit_terlambat: 0,
-          jarak_meter: 11,
-          status_lokasi: 'Di Kantor (11m)',
-          status_kehadiran: 'Tepat Waktu',
-          skor_wajah: 98.5
         }
       ];
 
-      // 4B. Data Awal Pengajuan Sakit / Izin / Cuti
-      var leaveRequests = [
+      var previewDummyLeaves = [
         {
           id: 'leave-1',
           karyawan_id: 'emp-2',
@@ -1507,46 +1688,26 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
           jenis_pengajuan: 'Sakit',
           tanggal_mulai: '2026-11-05',
           tanggal_selesai: '2026-11-06',
-          alasan: 'Demam dan flu berat, disarankan istirahat 2 hari sesuai surat keterangan dokter klinik.',
-          kontak_lampiran: 'Surat Dokter Klinik Kimia Farma #SKD-882',
+          alasan: 'Demam dan flu berat, istirahat sesuai surat dokter klinik.',
+          kontak_lampiran: 'Surat Dokter #SKD-882',
           status_persetujuan: 'Menunggu Persetujuan',
           created_at: '05 Nov 2026, 06:30'
-        },
-        {
-          id: 'leave-2',
-          karyawan_id: 'emp-6',
-          nama_karyawan: 'Ayu Pratiwi',
-          posisi_karyawan: 'Koordinator Logistik & Gudang',
-          jenis_pengajuan: 'Izin Keperluan',
-          tanggal_mulai: '2026-11-05',
-          tanggal_selesai: '2026-11-05',
-          alasan: 'Mengurus perpanjangan dokumen administrasi keluarga di kantor kecamatan pagi hari.',
-          kontak_lampiran: '0813-2299-1029',
-          status_persetujuan: 'Menunggu Persetujuan',
-          created_at: '05 Nov 2026, 06:45'
-        },
-        {
-          id: 'leave-3',
-          karyawan_id: 'emp-5',
-          nama_karyawan: 'Rina Wulandari',
-          posisi_karyawan: 'Manajer Proyek IT',
-          jenis_pengajuan: 'Dinas Luar',
-          tanggal_mulai: '2026-11-03',
-          tanggal_selesai: '2026-11-03',
-          alasan: 'Rapat koordinasi implementasi server klien di Jakarta Selatan.',
-          kontak_lampiran: 'Surat Tugas #ST-192',
-          status_persetujuan: 'Disetujui',
-          created_at: '03 Nov 2026, 07:00'
         }
       ];
 
-      // State Aktif
-      var currentSession = { role: 'ADMIN', name: 'Admin HR (Akses Penuh)', empId: null };
-      var focusedEmpId = 'emp-1';
+      // State Utama: Kosong 100% saat IS_PRODUCTION = true
+      var employeesList = IS_PRODUCTION ? [] : previewDummyEmployees.slice();
+      var attendanceLogs = IS_PRODUCTION ? [] : previewDummyAttendance.slice();
+      var leaveRequests = IS_PRODUCTION ? [] : previewDummyLeaves.slice();
+
+      var currentSession = IS_PRODUCTION
+        ? { role: null, name: 'Belum Masuk', empId: null }
+        : { role: 'ADMIN', name: 'Admin HR (Akses Penuh)', empId: null };
+      var focusedEmpId = employeesList[0] ? employeesList[0].id : null;
       var current3DExpression = 'smile';
-      var timerSeconds = 3 * 3600 + 37 * 60 + 52; // 03:37:52 sesuai gambar referensi
-      var timerRunning = true;
-      var selectedCalendarDay = 12;
+      var timerSeconds = IS_PRODUCTION ? 0 : (3 * 3600 + 37 * 60 + 52);
+      var timerRunning = !IS_PRODUCTION;
+      var selectedCalendarDay = 5;
       var activeWebcamStream = null;
 
       // 5. Generator SVG Karakter Wanita Animasi 3D Bergaya Pixar/Stylized 3D
@@ -1733,7 +1894,23 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
 
       // 9. Render Seluruh Komponen Dashboard Bento & Semua Tabel
       function renderAll() {
-        var emp = employeesList.find(function (e) { return e.id === focusedEmpId; }) || employeesList[0];
+        var emp = employeesList.find(function (e) { return e.id === focusedEmpId; }) || employeesList[0] || {
+          id: 'empty',
+          nama: 'Belum Ada Staf',
+          pin_password: '-',
+          posisi: 'Silakan Tambah Staf',
+          level_posisi: '-',
+          departemen: 'Operasional',
+          email: '-',
+          tanggal_bergabung: '-',
+          shift_default: 'SHIFT_1',
+          avatar_style: 'female_bella',
+          gps_distance: 0,
+          jadwal: ['SHIFT_1', 'SHIFT_1', 'SHIFT_1', 'SHIFT_1', 'SHIFT_1', 'LIBUR', 'LIBUR']
+        };
+
+        var sidebarSess = document.getElementById('sidebar-session-label');
+        if (sidebarSess) sidebarSess.textContent = currentSession.name || 'Belum Masuk';
 
         // Update Dropdown Pemilih Karyawan & Datalist Login Nama
         var globalSel = document.getElementById('global-emp-selector');
@@ -1741,16 +1918,24 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
         var repEmpSel = document.getElementById('filter-report-emp');
         var datalist = document.getElementById('employee-names-datalist');
 
-        var optionsHtml = employeesList.map(function (e) {
-          var sel = e.id === emp.id ? 'selected' : '';
-          return '<option value="' + e.id + '" ' + sel + '>' + e.nama + ' — ' + e.posisi + '</option>';
-        }).join('');
+        var optionsHtml = employeesList.length > 0
+          ? employeesList.map(function (e) {
+              var sel = e.id === emp.id ? 'selected' : '';
+              return '<option value="' + e.id + '" ' + sel + '>' + e.nama + ' — ' + e.posisi + '</option>';
+            }).join('')
+          : '<option value="">Belum ada data karyawan di database</option>';
 
         if (globalSel) globalSel.innerHTML = optionsHtml;
         if (scanSel) scanSel.innerHTML = optionsHtml;
         if (datalist) {
           datalist.innerHTML = employeesList.map(function (e) {
             return '<option value="' + e.nama + '">' + e.posisi + ' (' + e.departemen + ')</option>';
+          }).join('');
+        }
+        if (repEmpSel) {
+          var currentRepEmp = repEmpSel.value || 'ALL';
+          repEmpSel.innerHTML = '<option value="ALL">Semua Karyawan (' + employeesList.length + ' Staf)</option>' + employeesList.map(function (e) {
+            return '<option value="' + e.id + '" ' + (e.id === currentRepEmp ? 'selected' : '') + '>' + e.nama + '</option>';
           }).join('');
         }
         if (repEmpSel && repEmpSel.options.length <= 1) {
@@ -1789,28 +1974,11 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
         var avatarSvg = build3DFemaleAvatar(emp.avatar_style || 'female_bella', current3DExpression);
         var bentoStage = document.getElementById('bento-3d-stage');
         var scannerStage = document.getElementById('scanner-3d-stage');
-        if (bentoStage) bentoStage.innerHTML = avatarSvg;
-        if (scannerStage) scannerStage.innerHTML = avatarSvg;
-
-        // Isi Detail Kartu Profil Bento
-        document.getElementById('profile-name').textContent = emp.nama;
-        document.getElementById('profile-position').textContent = emp.posisi;
-        document.getElementById('profile-dept').textContent = (emp.level_posisi || 'Madya') + ' • ' + emp.departemen;
-        document.getElementById('profile-email').textContent = emp.email;
-        document.getElementById('profile-pin-text').textContent = 'PIN: ' + emp.pin_password;
-        document.getElementById('profile-gps-text').textContent = '📍 Di Kantor (' + (emp.gps_distance || 14) + 'm)';
-        document.getElementById('profile-shift-pill').textContent = emp.shift_default === 'SHIFT_1'
-          ? 'Shift 1 (' + workSettings.s1In + '-' + workSettings.s1Out + ')'
-          : 'Shift 2 (' + workSettings.s2In + '-' + workSettings.s2Out + ')';
-
-        document.getElementById('subtask-1-name').textContent = emp.posisi;
-        document.getElementById('scan-overlay-name').textContent = 'Target: ' + emp.nama + ' (' + emp.posisi + ')';
-
-        // Hitung Proporsi Shift 1 vs Shift 2 dari 40 Karyawan
+        // Hitung Proporsi Shift 1 vs Shift 2 dari Karyawan Terdaftar
         var s1Count = employeesList.filter(function (e) { return e.shift_default === 'SHIFT_1'; }).length;
-        var s2Count = employeesList.length - s1Count;
-        var s1Pct = Math.round((s1Count / employeesList.length) * 100) || 50;
-        var s2Pct = 100 - s1Pct;
+        var s2Count = Math.max(0, employeesList.length - s1Count);
+        var s1Pct = employeesList.length > 0 ? Math.round((s1Count / employeesList.length) * 100) : 50;
+        var s2Pct = employeesList.length > 0 ? (100 - s1Pct) : 50;
 
         document.getElementById('pct-shift-1').textContent = s1Pct + '%';
         document.getElementById('pct-shift-2').textContent = s2Pct + '%';
@@ -1820,7 +1988,7 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
         document.getElementById('header-shift-summary').textContent =
           'Shift 1: ' + workSettings.s1In + '-' + workSettings.s1Out + ' • Shift 2: ' + workSettings.s2In + '-' + workSettings.s2Out;
 
-        renderSegmentedGauge(86);
+        renderSegmentedGauge(employeesList.length > 0 ? 86 : 0);
         renderCalendarAndTimeline();
         renderLiveScanLogs();
         renderWeeklyScheduleTable();
@@ -1837,6 +2005,11 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
         var counter = document.getElementById('today-scan-counter');
         if (counter) counter.textContent = attendanceLogs.length + ' Log Tercatat';
         if (!box) return;
+
+        if (attendanceLogs.length === 0) {
+          box.innerHTML = '<div class="p-6 rounded-2xl bg-slate-50 border border-slate-200/70 text-center text-xs font-bold text-slate-400">Belum ada log pemindaian wajah di database Supabase.</div>';
+          return;
+        }
 
         box.innerHTML = attendanceLogs.slice(0, 10).map(function (log) {
           var isLate = log.menit_terlambat > 0;
@@ -1860,8 +2033,14 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
         var tbody = document.getElementById('weekly-schedule-tbody');
         if (!tbody) return;
 
+        if (employeesList.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="10" class="py-8 text-center text-slate-400 font-bold">Belum ada data karyawan di database Supabase. Tambahkan karyawan terlebih dahulu.</td></tr>';
+          return;
+        }
+
         tbody.innerHTML = employeesList.map(function (emp, empIdx) {
-          var daysHtml = emp.jadwal.map(function (shiftCode, dayIdx) {
+          var jadwalArr = Array.isArray(emp.jadwal) ? emp.jadwal : ['SHIFT_1', 'SHIFT_1', 'SHIFT_1', 'SHIFT_1', 'SHIFT_1', 'LIBUR', 'LIBUR'];
+          var daysHtml = jadwalArr.map(function (shiftCode, dayIdx) {
             var cls = 'bg-slate-100 text-slate-500';
             var label = 'Libur';
             if (shiftCode === 'SHIFT_1') {
@@ -1879,7 +2058,7 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
               '</td>';
           }).join('');
 
-          var activeDays = emp.jadwal.filter(function (s) { return s !== 'LIBUR'; }).length;
+          var activeDays = jadwalArr.filter(function (s) { return s !== 'LIBUR'; }).length;
           var weeklyHours = activeDays * workSettings.targetDailyHours;
 
           return '' +
@@ -1906,6 +2085,11 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
           var matchS = shift === 'ALL' || e.shift_default === shift;
           return matchQ && matchD && matchS;
         });
+
+        if (filtered.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="py-8 text-center text-slate-400 font-bold">Belum ada data karyawan di database Supabase. Klik "+ Tambah Karyawan Baru" di kanan atas.</td></tr>';
+          return;
+        }
 
         tbody.innerHTML = filtered.map(function (e) {
           var shiftBadge = e.shift_default === 'SHIFT_1'
@@ -1937,185 +2121,18 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
               '<td class="py-3 px-3"><span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-extrabold">✓ Terdaftar 3D</span></td>' +
               '<td class="py-3 px-3 text-right space-x-1">' +
                 '<button type="button" onclick="window.editEmployee(\'' + e.id + '\')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">Ubah</button>' +
+                '<button type="button" onclick="window.deleteEmployee(\'' + e.id + '\')" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold">Hapus</button>' +
                 '<button type="button" onclick="window.quickScanEmployee(\'' + e.id + '\')" class="px-2.5 py-1 rounded-lg bg-[#0D8BFF] text-white font-bold">Scan</button>' +
               '</td>' +
             '</tr>';
         }).join('');
       };
-
-      // 13. Render Rekapitulasi Jam Kerja dengan Filter Rentang Tanggal (Dari s.d. Sampai)
-      window.renderWorkHoursReport = function () {
-        var startInput = document.getElementById('filter-date-start');
-        var endInput = document.getElementById('filter-date-end');
-        if (startInput && !startInput.value) startInput.value = '2026-11-01';
-        if (endInput && !endInput.value) endInput.value = '2026-11-30';
-
-        var startDate = startInput ? startInput.value : '2026-11-01';
-        var endDate = endInput ? endInput.value : '2026-11-30';
-        var empFilter = document.getElementById('filter-report-emp')?.value || 'ALL';
-        var posFilter = document.getElementById('filter-report-pos')?.value || 'ALL';
-
-        var filteredLogs = attendanceLogs.filter(function (l) {
-          var inDate = (!startDate || l.tanggal >= startDate) && (!endDate || l.tanggal <= endDate);
-          var inEmp = empFilter === 'ALL' || l.karyawan_id === empFilter;
-          var inPos = posFilter === 'ALL' || l.posisi_karyawan === posFilter;
-          return inDate && inEmp && inPos;
-        });
-
-        var totalMinutes = 0;
-        var totalLate = 0;
-        filteredLogs.forEach(function (l) {
-          totalMinutes += Number(l.durasi_menit || 0);
-          totalLate += Number(l.menit_terlambat || 0);
-        });
-
-        var hrs = Math.floor(totalMinutes / 60);
-        var mins = totalMinutes % 60;
-        var hhmmStr = String(hrs).padStart(2, '0') + ':' + String(mins).padStart(2, '0') + ':00';
-        var avgHours = filteredLogs.length > 0 ? ((totalMinutes / 60) / filteredLogs.length).toFixed(1) : '0.0';
-
-        document.getElementById('rep-summary-count').textContent = filteredLogs.length + ' Sesi Hadir';
-        document.getElementById('rep-summary-hhmm').textContent = hhmmStr;
-        document.getElementById('rep-summary-avg').textContent = avgHours.replace('.', ',') + ' Jam';
-        document.getElementById('rep-summary-late').textContent = totalLate + ' Menit';
-
-        var tbody = document.getElementById('report-logs-tbody');
-        if (!tbody) return;
-
-        if (filteredLogs.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="9" class="py-6 text-center text-slate-400 font-bold">Tidak ada data absensi pada rentang tanggal tersebut.</td></tr>';
-          return;
-        }
-
-        tbody.innerHTML = filteredLogs.map(function (l) {
-          var badge = '<span class="px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-700 font-extrabold">' + l.status_kehadiran + '</span>';
-          if (l.menit_terlambat > 0) {
-            badge = '<span class="px-2 py-0.5 rounded-lg bg-amber-50 text-amber-700 font-extrabold">Terlambat (' + l.menit_terlambat + 'm)</span>';
-          } else if (l.status_kehadiran.indexOf('Sakit') !== -1 || l.status_kehadiran.indexOf('Izin') !== -1 || l.status_kehadiran.indexOf('Cuti') !== -1) {
-            badge = '<span class="px-2 py-0.5 rounded-lg bg-rose-50 text-rose-700 font-extrabold">' + l.status_kehadiran + '</span>';
-          }
-
-          return '' +
-            '<tr class="hover:bg-slate-50">' +
-              '<td class="py-3 px-3 font-mono font-bold text-slate-700">' + l.tanggal + '</td>' +
-              '<td class="py-3 px-3 font-extrabold text-slate-900">' + l.nama_karyawan + '</td>' +
-              '<td class="py-3 px-3 font-semibold text-slate-600">' + l.posisi_karyawan + '</td>' +
-              '<td class="py-3 px-3 font-bold text-[#0D8BFF]">' + (l.shift_kode === 'SHIFT_1' ? 'Shift 1 (Pagi)' : (l.shift_kode === 'SHIFT_2' ? 'Shift 2 (Siang)' : l.shift_kode)) + '</td>' +
-              '<td class="py-3 px-3 font-mono font-bold">' + l.jam_masuk + '</td>' +
-              '<td class="py-3 px-3 font-mono font-bold">' + l.jam_pulang + '</td>' +
-              '<td class="py-3 px-3 font-mono font-extrabold text-emerald-700">' + l.durasi_teks + '</td>' +
-              '<td class="py-3 px-3 text-slate-500">' + l.status_lokasi + '</td>' +
-              '<td class="py-3 px-3">' + badge + '</td>' +
-            '</tr>';
-        }).join('');
-      };
-
-      // 13B. Render Daftar Pengajuan Sakit / Izin / Cuti
-      window.renderLeaveRequests = function () {
-        var leaveEmpSel = document.getElementById('leave-emp-select');
-        if (leaveEmpSel) {
-          var targetId = currentSession.role === 'STAFF' && currentSession.empId ? currentSession.empId : focusedEmpId;
-          leaveEmpSel.innerHTML = employeesList.map(function (e) {
-            return '<option value="' + e.id + '" ' + (e.id === targetId ? 'selected' : '') + '>' + e.nama + ' — ' + e.posisi + '</option>';
-          }).join('');
-        }
-
-        var pendingCount = leaveRequests.filter(function (r) { return r.status_persetujuan === 'Menunggu Persetujuan'; }).length;
-        var approvedCount = leaveRequests.filter(function (r) { return r.status_persetujuan === 'Disetujui'; }).length;
-        var rejectedCount = leaveRequests.filter(function (r) { return r.status_persetujuan === 'Ditolak'; }).length;
-
-        var badgeNav = document.getElementById('badge-pending-leave');
-        if (badgeNav) badgeNav.textContent = pendingCount;
-        var elPend = document.getElementById('leave-count-pending');
-        var elAppr = document.getElementById('leave-count-approved');
-        var elRej = document.getElementById('leave-count-rejected');
-        if (elPend) elPend.textContent = pendingCount;
-        if (elAppr) elAppr.textContent = approvedCount;
-        if (elRej) elRej.textContent = rejectedCount;
-
-        var statusFilter = document.getElementById('filter-leave-status')?.value || 'ALL';
-        var listBox = document.getElementById('leave-requests-list');
-        if (!listBox) return;
-
-        var filtered = leaveRequests.filter(function (r) {
-          return statusFilter === 'ALL' || r.status_persetujuan === statusFilter;
-        });
-
-        if (filtered.length === 0) {
-          listBox.innerHTML = '<div class="p-6 text-center text-slate-400 font-bold text-xs">Belum ada data pengajuan sakit/izin untuk filter ini.</div>';
-          return;
-        }
-
-        listBox.innerHTML = filtered.map(function (req) {
-          var badgeStyle = 'bg-amber-50 text-amber-700 border-amber-200';
-          if (req.status_persetujuan === 'Disetujui') badgeStyle = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-          if (req.status_persetujuan === 'Ditolak') badgeStyle = 'bg-rose-50 text-rose-700 border-rose-200';
-
-          var typeBadge = 'bg-sky-50 text-[#0D8BFF]';
-          if (req.jenis_pengajuan === 'Sakit') typeBadge = 'bg-rose-50 text-rose-600';
-
-          var adminButtons = '';
-          if (req.status_persetujuan === 'Menunggu Persetujuan') {
-            adminButtons = '' +
-              '<div class="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-200/70">' +
-                '<button type="button" onclick="window.decideLeaveRequest(\'' + req.id + '\', \'Disetujui\')" class="px-3 py-1.5 rounded-xl bg-[#16C759] hover:bg-emerald-600 text-white text-[11px] font-extrabold transition shadow-sm">' +
-                  '✓ Setujui & Masukkan ke Rekap' +
-                '</button>' +
-                '<button type="button" onclick="window.decideLeaveRequest(\'' + req.id + '\', \'Ditolak\')" class="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-[11px] font-extrabold transition">' +
-                  '✕ Tolak' +
-                '</button>' +
-              '</div>';
-          }
-
-          return '' +
-            '<div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs">' +
-              '<div class="flex flex-wrap items-center justify-between gap-2 mb-1.5">' +
-                '<div class="flex items-center gap-2">' +
-                  '<span class="px-2.5 py-0.5 rounded-lg font-extrabold text-[11px] ' + typeBadge + '">' + req.jenis_pengajuan + '</span>' +
-                  '<span class="font-extrabold text-slate-900 text-sm">' + req.nama_karyawan + '</span>' +
-                  '<span class="text-[11px] text-slate-400 font-semibold">(' + req.posisi_karyawan + ')</span>' +
-                '</div>' +
-                '<span class="px-2.5 py-1 rounded-xl border text-[10px] font-extrabold ' + badgeStyle + '">' + req.status_persetujuan + '</span>' +
-              '</div>' +
-              '<p class="text-slate-700 font-medium leading-relaxed my-1.5">"' + req.alasan + '"</p>' +
-              '<div class="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">' +
-                '<span>📅 Tanggal: <strong class="text-slate-800 font-mono">' + req.tanggal_mulai + ' s.d. ' + req.tanggal_selesai + '</strong></span>' +
-                '<span>📎 Info/Kontak: <strong class="text-slate-700">' + (req.kontak_lampiran || '-') + '</strong></span>' +
-              '</div>' +
-              adminButtons +
-            '</div>';
-        }).join('');
-      };
-
-      // 13C. Kalkulasi Estimasi Memori Database Supabase Free Tier (500 MB)
-      function updateStorageMetricsUI() {
-        var totalRows = employeesList.length + attendanceLogs.length + leaveRequests.length;
-        // Rata-rata 1 baris JSON/relasional ~ 0.5 KB (0.0005 MB), ditambah overhead dasar 0.04 MB
-        var usedMB = (0.04 + (totalRows * 0.0005)).toFixed(3);
-        var pct = Math.min(100, Math.max(0.01, (usedMB / 500) * 100)).toFixed(2);
-
-        var sidePct = document.getElementById('sidebar-db-pct');
-        if (sidePct) sidePct.textContent = pct + '%';
-
-        var txt = document.getElementById('storage-usage-text');
-        if (txt) txt.textContent = usedMB + ' MB / 500 MB (' + pct + '%)';
-
-        var bar = document.getElementById('storage-usage-bar');
-        if (bar) bar.style.width = Math.max(2, parseFloat(pct)) + '%';
-
-        var cEmp = document.getElementById('storage-count-emp');
-        var cAtt = document.getElementById('storage-count-att');
-        var cLeave = document.getElementById('storage-count-leave');
-        if (cEmp) cEmp.textContent = employeesList.length + ' baris';
-        if (cAtt) cAtt.textContent = attendanceLogs.length + ' baris';
-        if (cLeave) cLeave.textContent = leaveRequests.length + ' baris';
-      }
-
-      // 14. Render Master Posisi di Modal & Filter
+      // 14. Render Master Posisi di Modal, Filter & Menu Manajemen Posisi
       function renderMasterPositionsList() {
         var posSelectEmp = document.getElementById('form-emp-position');
         var posSelectRep = document.getElementById('filter-report-pos');
         var tagsBox = document.getElementById('positions-tags-list');
+        var inlinePosList = document.getElementById('inline-positions-list');
 
         if (posSelectEmp) {
           posSelectEmp.innerHTML = masterPositions.map(function (p) {
@@ -2133,14 +2150,183 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
             return '<span class="px-2.5 py-1 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700">' + p + '</span>';
           }).join('');
         }
+        if (inlinePosList) {
+          inlinePosList.innerHTML = masterPositions.map(function (p, idx) {
+            return '' +
+              '<div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">' +
+                '<span class="font-extrabold text-slate-800">' + (idx + 1) + '. ' + p + '</span>' +
+                '<button type="button" onclick="window.removeMasterPosition(' + idx + ')" class="text-rose-500 hover:underline font-bold text-[11px]">Hapus</button>' +
+              '</div>';
+          }).join('');
+        }
       }
+
+      // ===============================================================
+      // SINKRONISASI DATABASE SUPABASE ASLI (SAAT DEPLOY / IS_PRODUCTION)
+      // ===============================================================
+      async function loadFromSupabaseDatabase() {
+        if (!supabaseClient) return;
+        try {
+          var resPos = await supabaseClient.from('master_posisi').select('*').order('created_at', { ascending: true });
+          if (resPos.data && resPos.data.length > 0) {
+            masterPositions = resPos.data.map(function (r) { return r.nama_posisi; });
+            var firstCfg = resPos.data[0];
+            if (firstCfg.shift1_masuk) workSettings.s1In = firstCfg.shift1_masuk;
+            if (firstCfg.shift1_pulang) workSettings.s1Out = firstCfg.shift1_pulang;
+            if (firstCfg.shift2_masuk) workSettings.s2In = firstCfg.shift2_masuk;
+            if (firstCfg.shift2_pulang) workSettings.s2Out = firstCfg.shift2_pulang;
+            if (firstCfg.toleransi_menit != null) workSettings.lateToleranceMinutes = firstCfg.toleransi_menit;
+            if (firstCfg.target_jam_harian != null) workSettings.targetDailyHours = Number(firstCfg.target_jam_harian);
+            if (firstCfg.radius_kantor_meter != null) workSettings.maxRadiusMeters = firstCfg.radius_kantor_meter;
+          }
+
+          var resEmp = await supabaseClient.from('karyawan').select('*').order('created_at', { ascending: true });
+          if (resEmp.data) {
+            employeesList = resEmp.data.map(function (e) {
+              return {
+                id: e.id,
+                nik: e.nik || '',
+                nama: e.nama,
+                pin_password: e.pin_password || '123456',
+                posisi: e.posisi || 'Staf',
+                level_posisi: e.level_posisi || 'Madya',
+                departemen: e.departemen || 'Operasional',
+                email: e.email || '-',
+                tanggal_bergabung: e.tanggal_bergabung || '-',
+                shift_default: e.shift_default || 'SHIFT_1',
+                avatar_style: e.avatar_style || 'female_bella',
+                gps_distance: 12,
+                jadwal: Array.isArray(e.jadwal_minggu) ? e.jadwal_minggu : (Array.isArray(e.jadwal_mingguan) ? e.jadwal_mingguan : ['SHIFT_1', 'SHIFT_1', 'SHIFT_1', 'SHIFT_1', 'SHIFT_1', 'LIBUR', 'LIBUR'])
+              };
+            });
+            if (employeesList.length > 0 && !focusedEmpId) {
+              focusedEmpId = employeesList[0].id;
+            }
+          }
+
+          var resAtt = await supabaseClient.from('absensi').select('*').order('tanggal', { ascending: false });
+          if (resAtt.data) {
+            attendanceLogs = resAtt.data.map(function (a) {
+              return {
+                id: a.id,
+                karyawan_id: a.karyawan_id,
+                nama_karyawan: a.nama_karyawan || '-',
+                posisi_karyawan: a.posisi_karyawan || '-',
+                tanggal: a.tanggal,
+                shift_kode: a.shift_kode || 'SHIFT_1',
+                jam_masuk: a.waktu_masuk ? String(a.waktu_masuk).slice(0, 5) : '-',
+                jam_pulang: a.waktu_pulang ? String(a.waktu_pulang).slice(0, 5) : '-',
+                durasi_menit: a.durasi_menit || 0,
+                durasi_teks: a.durasi_teks || '00:00:00',
+                menit_terlambat: a.menit_terlambat || 0,
+                jarak_meter: a.jarak_meter || 0,
+                status_lokasi: a.status_lokasi || 'Di Kantor',
+                status_kehadiran: a.status_kehadiran || 'Hadir',
+                skor_wajah: a.skor_wajah || 98.5
+              };
+            });
+          }
+
+          var resLeave = await supabaseClient.from('pengajuan_izin').select('*').order('created_at', { ascending: false });
+          if (resLeave.data) {
+            leaveRequests = resLeave.data.map(function (l) {
+              return {
+                id: l.id,
+                karyawan_id: l.karyawan_id,
+                nama_karyawan: l.nama_karyawan,
+                posisi_karyawan: l.posisi_karyawan || '-',
+                jenis_pengajuan: l.jenis_izin || l.jenis_pengajuan || 'Izin',
+                tanggal_mulai: l.tanggal_mulai,
+                tanggal_selesai: l.tanggal_selesai,
+                alasan: l.alasan || '-',
+                kontak_lampiran: l.info_lampiran || l.kontak_lampiran || '-',
+                status_persetujuan: l.status_approval || l.status_persetujuan || 'Menunggu Persetujuan',
+                created_at: l.tanggal_mulai
+              };
+            });
+          }
+          renderAll();
+        } catch (err) {
+          console.error('Gagal memuat data dari Supabase:', err);
+        }
+      }
+
+      // Terapkan Pembersihan Total UI saat Mode Deploy / Produksi Aktif
+      function applyDeployModeCleanUI() {
+        var banner = document.getElementById('preview-banner');
+        var restorePill = document.getElementById('restore-preview-pill');
+        var staffInput = document.getElementById('login-staff-name');
+        var pinInput = document.getElementById('login-staff-pin');
+        var adminEmail = document.getElementById('login-admin-email');
+        var adminPass = document.getElementById('login-admin-pass');
+        var closeLoginBtn = document.getElementById('btn-close-login-modal');
+
+        if (IS_PRODUCTION) {
+          // Hapus permanen elemen bar uji coba dari DOM saat deploy nyata
+          if (banner && banner.parentNode) banner.parentNode.removeChild(banner);
+          if (restorePill && restorePill.parentNode) restorePill.parentNode.removeChild(restorePill);
+        } else if (simulatedDeployMode) {
+          if (banner) banner.classList.add('hidden');
+          if (restorePill) restorePill.classList.remove('hidden');
+        } else {
+          if (banner) banner.classList.remove('hidden');
+          if (restorePill) restorePill.classList.add('hidden');
+        }
+
+        if (isStrictDeployActive()) {
+          // Kosongkan nilai isian otomatis (dummy credentials) pada form login
+          if (staffInput) staffInput.value = '';
+          if (pinInput) pinInput.value = '';
+          if (adminEmail) adminEmail.value = '';
+          if (adminPass) adminPass.value = '';
+
+          // Jika belum login, tampilkan layar Login bersih & sembunyikan tombol X
+          if (!currentSession.role) {
+            if (closeLoginBtn) closeLoginBtn.classList.add('hidden');
+            window.openLoginModal('STAFF');
+          } else {
+            if (closeLoginBtn) closeLoginBtn.classList.remove('hidden');
+          }
+        } else {
+          if (staffInput && !staffInput.value) staffInput.value = 'Bella Putri';
+          if (pinInput && !pinInput.value) pinInput.value = '123456';
+          if (adminEmail && !adminEmail.value) adminEmail.value = 'admin@perusahaan.id';
+          if (adminPass && !adminPass.value) adminPass.value = 'admin123';
+          if (closeLoginBtn) closeLoginBtn.classList.remove('hidden');
+        }
+      }
+
+      // Tombol Simulasi Tampilan Deploy (Untuk menguji tampilan bersih langsung di Canvas)
+      window.toggleSimulateDeploy = function (enableDeployView) {
+        simulatedDeployMode = !!enableDeployView;
+        if (simulatedDeployMode) {
+          employeesList = [];
+          attendanceLogs = [];
+          leaveRequests = [];
+          currentSession = { role: null, name: 'Belum Masuk', empId: null };
+          focusedEmpId = null;
+          applyDeployModeCleanUI();
+          renderAll();
+          showToast('Mode Tampilan Deploy Aktif: Bar uji coba & data dummy disembunyikan 100%!');
+        } else {
+          employeesList = previewDummyEmployees.slice();
+          attendanceLogs = previewDummyAttendance.slice();
+          leaveRequests = previewDummyLeaves.slice();
+          currentSession = { role: 'ADMIN', name: 'Admin HR (Akses Penuh)', empId: null };
+          focusedEmpId = employeesList[0].id;
+          window.closeLoginModal();
+          applyDeployModeCleanUI();
+          renderAll();
+          showToast('Kembali ke Mode Uji Coba (40 Karyawan Demo Aktif).');
+        }
+      };
 
       // ===============================================================
       // FUNGSI INTERAKSI GLOBAL (TERHUBUNG KE TOMBOL ONCLICK HTML)
       // ===============================================================
 
       window.switchMenu = function (menuKey) {
-        var views = ['overview', 'facescan', 'schedule', 'employees', 'leave', 'reports'];
+        var views = ['overview', 'facescan', 'schedule', 'employees', 'leave', 'reports', 'positions'];
         views.forEach(function (v) {
           var sec = document.getElementById('view-' + v);
           var btn = document.getElementById('nav-btn-' + v);
@@ -2158,11 +2344,15 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
         });
       };
 
-      // Fungsi Submit Pengajuan Sakit / Izin / Cuti Baru
-      window.submitLeaveRequest = function (e) {
+      // Fungsi Submit Pengajuan Sakit / Izin / Cuti Baru (Terhubung ke Supabase)
+      window.submitLeaveRequest = async function (e) {
         e.preventDefault();
         var empId = document.getElementById('leave-emp-select').value;
         var emp = employeesList.find(function (x) { return x.id === empId; }) || employeesList[0];
+        if (!emp) {
+          showToast('Tambahkan data karyawan terlebih dahulu sebelum mengajukan izin.');
+          return;
+        }
         var jenis = document.getElementById('leave-type-select').value;
         var tglMulai = document.getElementById('leave-date-start').value;
         var tglSelesai = document.getElementById('leave-date-end').value;
@@ -2183,6 +2373,21 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
           created_at: 'Baru saja'
         };
 
+        if (supabaseClient) {
+          var ins = await supabaseClient.from('pengajuan_izin').insert([{
+            karyawan_id: emp.id,
+            nama_karyawan: emp.nama,
+            posisi_karyawan: emp.posisi,
+            jenis_izin: jenis,
+            tanggal_mulai: tglMulai,
+            tanggal_selesai: tglSelesai || tglMulai,
+            alasan: alasan,
+            info_lampiran: newReq.kontak_lampiran,
+            status_approval: 'Menunggu Persetujuan'
+          }]).select().single();
+          if (ins.data) newReq.id = ins.data.id;
+        }
+
         leaveRequests.unshift(newReq);
         document.getElementById('leave-reason-input').value = '';
         document.getElementById('leave-attachment-input').value = '';
@@ -2190,14 +2395,18 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
         showToast('Pengajuan ' + jenis + ' untuk ' + emp.nama + ' berhasil dikirim!');
       };
 
-      // Fungsi Persetujuan Admin (Otomatis Masuk ke Tabel Rekap Absensi)
-      window.decideLeaveRequest = function (reqId, decision) {
+      // Fungsi Persetujuan Admin (Otomatis Masuk ke Tabel Rekap Absensi & Supabase)
+      window.decideLeaveRequest = async function (reqId, decision) {
         var req = leaveRequests.find(function (r) { return r.id === reqId; });
         if (!req) return;
         req.status_persetujuan = decision;
 
+        if (supabaseClient) {
+          await supabaseClient.from('pengajuan_izin').update({ status_approval: decision }).eq('id', reqId);
+        }
+
         if (decision === 'Disetujui') {
-          attendanceLogs.unshift({
+          var newAtt = {
             id: 'log-leave-' + Date.now(),
             karyawan_id: req.karyawan_id,
             nama_karyawan: req.nama_karyawan,
@@ -2213,19 +2422,85 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
             status_lokasi: req.jenis_pengajuan + ' (Disetujui HR)',
             status_kehadiran: req.jenis_pengajuan,
             skor_wajah: 100.0
-          });
+          };
+          if (supabaseClient) {
+            await supabaseClient.from('absensi').insert([{
+              karyawan_id: req.karyawan_id,
+              nama_karyawan: req.nama_karyawan,
+              posisi_karyawan: req.posisi_karyawan,
+              tanggal: req.tanggal_mulai,
+              shift_kode: 'IZIN/SAKIT',
+              waktu_masuk: '-',
+              waktu_pulang: '-',
+              durasi_menit: 0,
+              durasi_teks: '00:00:00',
+              menit_terlambat: 0,
+              jarak_meter: 0,
+              status_lokasi: newAtt.status_lokasi,
+              status_kehadiran: req.jenis_pengajuan,
+              skor_wajah: 100
+            }]);
+          }
+          attendanceLogs.unshift(newAtt);
           showToast('Disetujui! Status ' + req.jenis_pengajuan + ' (' + req.nama_karyawan + ') otomatis masuk ke Rekap Kehadiran.');
         } else {
           showToast('Pengajuan ' + req.nama_karyawan + ' ditolak.');
         }
         renderAll();
       };
+      window.executeStoragePurge = async function (e) {
+        e.preventDefault();
+        var confirmText = (document.getElementById('purge-confirm-input').value || '').trim().toUpperCase();
+        if (confirmText !== 'HAPUS') {
+          showToast('Ketik kata HAPUS dengan benar untuk mengonfirmasi pembersihan transaksi!');
+          return;
+        }
 
-      // Fungsi Modal Manajer Penyimpanan Supabase & Kosongkan Transaksi
-      window.openStorageModal = function () {
-        updateStorageMetricsUI();
-        document.getElementById('purge-confirm-input').value = '';
-        document.getElementById('modal-storage').classList.remove('hidden');
+        var mode = document.getElementById('purge-mode-select').value;
+        var autoBackup = document.getElementById('purge-auto-backup').checked;
+
+        if (autoBackup && (attendanceLogs.length > 0 || leaveRequests.length > 0)) {
+          window.exportReportCSV();
+        }
+
+        var beforeCount = attendanceLogs.length + leaveRequests.length;
+
+        if (mode === 'ALL_LOGS') {
+          if (supabaseClient) {
+            await supabaseClient.from('absensi').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+            await supabaseClient.from('pengajuan_izin').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+          }
+          attendanceLogs = [];
+          leaveRequests = [];
+        } else if (mode === 'CUSTOM_RANGE') {
+          var s = document.getElementById('purge-date-start').value;
+          var end = document.getElementById('purge-date-end').value;
+          if (supabaseClient) {
+            await supabaseClient.from('absensi').delete().gte('tanggal', s).lte('tanggal', end);
+            await supabaseClient.from('pengajuan_izin').delete().gte('tanggal_mulai', s).lte('tanggal_mulai', end);
+          }
+          attendanceLogs = attendanceLogs.filter(function (l) {
+            return !(l.tanggal >= s && l.tanggal <= end);
+          });
+          leaveRequests = leaveRequests.filter(function (r) {
+            return !(r.tanggal_mulai >= s && r.tanggal_mulai <= end);
+          });
+        } else {
+          var cutoff = mode === 'OLDER_3M' ? '2026-08-05' : '2026-05-05';
+          if (supabaseClient) {
+            await supabaseClient.from('absensi').delete().lt('tanggal', cutoff);
+            await supabaseClient.from('pengajuan_izin').delete().lt('tanggal_mulai', cutoff);
+          }
+          attendanceLogs = attendanceLogs.filter(function (l) { return l.tanggal >= cutoff; });
+          leaveRequests = leaveRequests.filter(function (r) { return r.tanggal_mulai >= cutoff; });
+        }
+
+        var afterCount = attendanceLogs.length + leaveRequests.length;
+        var deletedCount = Math.max(0, beforeCount - afterCount);
+
+        window.closeStorageModal();
+        renderAll();
+        showToast('Berhasil mengosongkan ' + deletedCount + ' transaksi! Data karyawan tetap utuh & memori DB lega.');
       };
       window.closeStorageModal = function () {
         document.getElementById('modal-storage').classList.add('hidden');
@@ -2275,70 +2550,13 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
 
         var afterCount = attendanceLogs.length + leaveRequests.length;
         var deletedCount = Math.max(0, beforeCount - afterCount);
-
-        window.closeStorageModal();
-        renderAll();
-        showToast('Berhasil mengosongkan ' + deletedCount + ' transaksi! Data 40 karyawan tetap utuh & memori DB lega.');
-      };
-
-      window.changeFocusedEmployee = function (empId) {
-        focusedEmpId = empId;
-        renderAll();
-      };
-
-      window.switch3DCharacterStyle = function (styleKey) {
-        var emp = employeesList.find(function (e) { return e.id === focusedEmpId; });
-        if (emp) emp.avatar_style = styleKey;
-        renderAll();
-        showToast('Karakter Wanita Animasi 3D diperbarui!');
-      };
-
-      window.set3DExpression = function (expr) {
-        current3DExpression = expr;
-        ['smile', 'focus', 'wink'].forEach(function (k) {
-          var b = document.getElementById('expr-btn-' + k);
-          if (b) {
-            b.className = k === expr
-              ? 'px-2.5 py-1 rounded-xl bg-[#0D8BFF] text-white text-[10px] font-extrabold shadow-sm transition'
-              : 'px-2.5 py-1 rounded-xl bg-white/90 text-slate-700 text-[10px] font-bold shadow-sm hover:bg-white transition';
-          }
-        });
-        renderAll();
-      };
-
-      window.toggleWorkTimer = function () {
-        timerRunning = !timerRunning;
-        var btn = document.getElementById('btn-toggle-timer');
-        var badge = document.getElementById('timer-status-badge');
-        if (btn) btn.textContent = timerRunning ? '⏸' : '▶';
-        if (badge) {
-          badge.textContent = timerRunning ? 'Sedang Bekerja' : 'Dijeda';
-          badge.className = timerRunning
-            ? 'px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-extrabold'
-            : 'px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 text-[10px] font-extrabold';
-        }
-      };
-
-      window.selectCalDate = function (dayNum) {
-        selectedCalendarDay = dayNum;
-        renderCalendarAndTimeline();
-      };
-
-      window.changeCalendarDay = function (delta) {
-        selectedCalendarDay = Math.max(1, Math.min(30, selectedCalendarDay + delta));
-        renderCalendarAndTimeline();
-      };
-
-      window.filterByDepartmentSidebar = function (deptName) {
-        var sel = document.getElementById('emp-dept-filter');
-        if (sel) sel.value = deptName;
-        window.switchMenu('employees');
-        window.renderEmployeesTable();
-      };
-
-      // Proses Absensi Scan Wajah 3D oleh Admin
-      window.processFaceAttendance = function (mode) {
+      // Proses Absensi Scan Wajah 3D oleh Admin (Beserta Upload Bucket absensi-media Opsional)
+      window.processFaceAttendance = async function (mode) {
         var emp = employeesList.find(function (e) { return e.id === focusedEmpId; }) || employeesList[0];
+        if (!emp) {
+          showToast('Belum ada karyawan terdaftar. Tambahkan karyawan di menu Data 40 Karyawan.');
+          return;
+        }
         var shiftCode = document.getElementById('scanner-shift-select')?.value || emp.shift_default;
         var distMeters = parseInt(document.getElementById('scanner-gps-distance')?.value || '14', 10);
         var withinRadius = distMeters <= workSettings.maxRadiusMeters;
@@ -2350,9 +2568,24 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
         var hh = String(now.getHours()).padStart(2, '0');
         var mm = String(now.getMinutes()).padStart(2, '0');
         var timeStr = hh + ':' + mm;
+        var todayIso = now.toISOString().slice(0, 10);
 
-        var confScore = (97.5 + Math.random() * 2.3).toFixed(1);
-        document.getElementById('scan-overlay-confidence').textContent = 'Kecocokan Wajah: ' + confScore.replace('.', ',') + '%';
+        var confScore = Number((97.5 + Math.random() * 2.3).toFixed(1));
+        document.getElementById('scan-overlay-confidence').textContent = 'Kecocokan Wajah: ' + String(confScore).replace('.', ',') + '%';
+
+        // Opsional upload foto bukti ke bucket absensi-media jika dipilih
+        var fileInput = document.getElementById('scanner-photo-file');
+        var uploadedPhotoUrl = null;
+        if (supabaseClient && fileInput && fileInput.files && fileInput.files[0]) {
+          var file = fileInput.files[0];
+          var filePath = 'bukti/' + emp.id + '_' + Date.now() + '_' + file.name.replace(/\s+/g, '_');
+          var upRes = await supabaseClient.storage.from(STORAGE_BUCKET).upload(filePath, file, { upsert: true });
+          if (!upRes.error) {
+            var pubUrl = supabaseClient.storage.from(STORAGE_BUCKET).getPublicUrl(filePath);
+            uploadedPhotoUrl = pubUrl.data ? pubUrl.data.publicUrl : null;
+          }
+          fileInput.value = '';
+        }
 
         if (mode === 'IN') {
           var schedIn = shiftCode === 'SHIFT_1' ? workSettings.s1In : workSettings.s2In;
@@ -2366,7 +2599,7 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
             karyawan_id: emp.id,
             nama_karyawan: emp.nama,
             posisi_karyawan: emp.posisi,
-            tanggal: '2026-11-05',
+            tanggal: todayIso,
             shift_kode: shiftCode,
             jam_masuk: timeStr,
             jam_pulang: shiftCode === 'SHIFT_1' ? workSettings.s1Out : workSettings.s2Out,
@@ -2376,20 +2609,41 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
             jarak_meter: distMeters,
             status_lokasi: locStatus,
             status_kehadiran: diffLate > 0 ? 'Terlambat (' + diffLate + 'm)' : 'Tepat Waktu',
-            skor_wajah: confScore
+            skor_wajah: confScore,
+            foto_bukti_url: uploadedPhotoUrl
           };
+
+          if (supabaseClient) {
+            await supabaseClient.from('absensi').insert([{
+              karyawan_id: emp.id,
+              nama_karyawan: emp.nama,
+              posisi_karyawan: emp.posisi,
+              tanggal: todayIso,
+              shift_kode: shiftCode,
+              waktu_masuk: timeStr,
+              waktu_pulang: newLog.jam_pulang,
+              durasi_menit: newLog.durasi_menit,
+              durasi_teks: newLog.durasi_teks,
+              menit_terlambat: diffLate,
+              jarak_meter: distMeters,
+              status_lokasi: locStatus,
+              status_kehadiran: newLog.status_kehadiran,
+              skor_wajah: confScore,
+              foto_bukti_url: uploadedPhotoUrl
+            }]);
+          }
+
           attendanceLogs.unshift(newLog);
           window.set3DExpression('wink');
           renderAll();
           showToast('Scan Wajah MASUK berhasil: ' + emp.nama + ' (' + newLog.status_kehadiran + ')');
         } else {
-          // Mode Check-Out & Hitung Jam Kerja
           var outLog = {
             id: 'log-' + Date.now(),
             karyawan_id: emp.id,
             nama_karyawan: emp.nama,
             posisi_karyawan: emp.posisi,
-            tanggal: '2026-11-05',
+            tanggal: todayIso,
             shift_kode: shiftCode,
             jam_masuk: shiftCode === 'SHIFT_1' ? workSettings.s1In : workSettings.s2In,
             jam_pulang: timeStr,
@@ -2399,8 +2653,30 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
             jarak_meter: distMeters,
             status_lokasi: locStatus,
             status_kehadiran: 'Selesai (8j 15m)',
-            skor_wajah: confScore
+            skor_wajah: confScore,
+            foto_bukti_url: uploadedPhotoUrl
           };
+
+          if (supabaseClient) {
+            await supabaseClient.from('absensi').insert([{
+              karyawan_id: emp.id,
+              nama_karyawan: emp.nama,
+              posisi_karyawan: emp.posisi,
+              tanggal: todayIso,
+              shift_kode: shiftCode,
+              waktu_masuk: outLog.jam_masuk,
+              waktu_pulang: timeStr,
+              durasi_menit: 495,
+              durasi_teks: '08:15:00',
+              menit_terlambat: 0,
+              jarak_meter: distMeters,
+              status_lokasi: locStatus,
+              status_kehadiran: 'Selesai (8j 15m)',
+              skor_wajah: confScore,
+              foto_bukti_url: uploadedPhotoUrl
+            }]);
+          }
+
           attendanceLogs.unshift(outLog);
           renderAll();
           showToast('Scan PULANG selesai: ' + emp.nama + ' • Total Jam Kerja 08:15:00');
@@ -2576,38 +2852,142 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
       };
 
       // Modal Tambah / Edit Karyawan
-      window.openAddEmployeeModal = function () {
-        document.getElementById('form-emp-id').value = '';
-        document.getElementById('form-emp-name').value = '';
-        document.getElementById('form-emp-pin').value = '123456';
-        renderMasterPositionsList();
-        document.getElementById('modal-employee').classList.remove('hidden');
-      };
-      window.closeEmployeeModal = function () {
-        document.getElementById('modal-employee').classList.add('hidden');
+      window.handleStaffLogin = async function (e) {
+        e.preventDefault();
+        var nameVal = (document.getElementById('login-staff-name').value || '').trim();
+        var pinVal = (document.getElementById('login-staff-pin').value || '').trim();
+
+        var found = null;
+
+        // Jika terhubung ke Supabase asli, validasi terhadap tabel karyawan (Nama ilike + PIN)
+        if (supabaseClient) {
+          var qRes = await supabaseClient
+            .from('karyawan')
+            .select('*')
+            .ilike('nama', nameVal)
+            .eq('pin_password', pinVal)
+            .limit(1);
+          if (qRes.data && qRes.data.length > 0) {
+            var dbEmp = qRes.data[0];
+            found = {
+              id: dbEmp.id,
+              nama: dbEmp.nama,
+              posisi: dbEmp.posisi || 'Staf',
+              pin_password: dbEmp.pin_password
+            };
+          }
+        } else {
+          found = employeesList.find(function (emp) {
+            return (emp.nama.toLowerCase() === nameVal.toLowerCase() || emp.nama.toLowerCase().includes(nameVal.toLowerCase())) &&
+                   String(emp.pin_password) === String(pinVal);
+          });
+        }
+
+        if (!found) {
+          showToast('Nama Karyawan atau PIN tidak ditemukan di database!');
+          return;
+        }
+
+        currentSession = { role: 'STAFF', name: found.nama, empId: found.id };
+        focusedEmpId = found.id;
+        var badge = document.getElementById('active-session-badge');
+        if (badge) badge.innerHTML = 'Akses Karyawan: <strong class="text-emerald-300">' + found.nama + ' (' + found.posisi + ')</strong>';
+        var closeBtn = document.getElementById('btn-close-login-modal');
+        if (closeBtn) closeBtn.classList.remove('hidden');
+        window.closeLoginModal();
+        window.switchMenu('overview');
+        renderAll();
+        showToast('Selamat datang, ' + found.nama + '!');
       };
 
-      window.editEmployee = function (empId) {
-        var emp = employeesList.find(function (e) { return e.id === empId; });
-        if (!emp) return;
-        renderMasterPositionsList();
-        document.getElementById('form-emp-id').value = emp.id;
-        document.getElementById('form-emp-name').value = emp.nama;
-        document.getElementById('form-emp-pin').value = emp.pin_password;
-        document.getElementById('form-emp-position').value = emp.posisi;
-        document.getElementById('form-emp-level').value = emp.level_posisi || 'Madya';
-        document.getElementById('form-emp-dept').value = emp.departemen;
-        document.getElementById('form-emp-shift').value = emp.shift_default;
-        document.getElementById('form-emp-avatar').value = emp.avatar_style || 'female_bella';
-        document.getElementById('modal-employee').classList.remove('hidden');
+      window.handleAdminLogin = async function (e) {
+        e.preventDefault();
+        var email = (document.getElementById('login-admin-email').value || '').trim();
+        var pass = (document.getElementById('login-admin-pass').value || '').trim();
+
+        if (supabaseClient) {
+          var authRes = await supabaseClient.auth.signInWithPassword({ email: email, password: pass });
+          if (authRes.error) {
+            showToast('Login Admin Gagal: ' + authRes.error.message);
+            return;
+          }
+        }
+
+        currentSession = { role: 'ADMIN', name: email, empId: null };
+        var badge = document.getElementById('active-session-badge');
+        if (badge) badge.innerHTML = 'Akses: <strong class="text-white">Admin HR (' + email + ')</strong>';
+        var closeBtn = document.getElementById('btn-close-login-modal');
+        if (closeBtn) closeBtn.classList.remove('hidden');
+        window.closeLoginModal();
+        renderAll();
+        showToast('Berhasil masuk sebagai Admin HR!');
       };
 
-      window.saveEmployeeForm = function (e) {
+      window.handleLogout = async function () {
+        if (supabaseClient) {
+          await supabaseClient.auth.signOut();
+        }
+        currentSession = { role: null, name: 'Belum Masuk', empId: null };
+        applyDeployModeCleanUI();
+        window.openLoginModal('STAFF');
+        renderAll();
+      };
+      window.saveInlineWorkHours = function (e) {
+        e.preventDefault();
+        workSettings.s1In = document.getElementById('inline-s1-in').value || '07:00';
+        workSettings.s1Out = document.getElementById('inline-s1-out').value || '15:00';
+        workSettings.s2In = document.getElementById('inline-s2-in').value || '15:00';
+        workSettings.s2Out = document.getElementById('inline-s2-out').value || '23:00';
+        workSettings.lateToleranceMinutes = parseInt(document.getElementById('inline-late-tol').value || '15', 10);
+        workSettings.targetDailyHours = parseInt(document.getElementById('inline-daily-hrs').value || '8', 10);
+        workSettings.maxRadiusMeters = parseInt(document.getElementById('inline-max-rad').value || '100', 10);
+
+        var maxRadLbl = document.getElementById('label-max-radius');
+        if (maxRadLbl) maxRadLbl.textContent = workSettings.maxRadiusMeters + ' Meter';
+        document.getElementById('timer-task-title').textContent = 'Target Harian: 0' + workSettings.targetDailyHours + ':00:00';
+        renderAll();
+        showToast('Pengaturan Jam Kerja 2 Shift & Radius GPS disimpan!');
+      };
+
+      window.addInlineMasterPosition = async function () {
+        var inp = document.getElementById('inline-new-pos');
+        var val = (inp.value || '').trim();
+        if (!val) return;
+        if (masterPositions.indexOf(val) === -1) {
+          masterPositions.push(val);
+          if (supabaseClient) {
+            await supabaseClient.from('master_posisi').insert([{ nama_posisi: val, departemen: 'Operasional', target_jam_mingguan: 40 }]);
+          }
+        }
+        inp.value = '';
+        renderMasterPositionsList();
+        showToast('Posisi "' + val + '" berhasil ditambahkan!');
+      };
+
+      window.removeMasterPosition = function (idx) {
+        masterPositions.splice(idx, 1);
+        renderMasterPositionsList();
+        showToast('Posisi jabatan dihapus.');
+      };
+
+      window.deleteEmployee = async function (empId) {
+        if (supabaseClient) {
+          await supabaseClient.from('karyawan').delete().eq('id', empId);
+        }
+        employeesList = employeesList.filter(function (e) { return e.id !== empId; });
+        if (focusedEmpId === empId) {
+          focusedEmpId = employeesList[0] ? employeesList[0].id : null;
+        }
+        renderAll();
+        showToast('Data karyawan telah dihapus.');
+      };
+
+      window.saveEmployeeForm = async function (e) {
         e.preventDefault();
         var id = document.getElementById('form-emp-id').value;
         var nama = document.getElementById('form-emp-name').value.trim();
         var pin = document.getElementById('form-emp-pin').value.trim() || '123456';
-        var posisi = document.getElementById('form-emp-position').value;
+        var posisi = document.getElementById('form-emp-position').value || 'Staf Operasional';
         var level = document.getElementById('form-emp-level').value;
         var dept = document.getElementById('form-emp-dept').value;
         var shift = document.getElementById('form-emp-shift').value;
@@ -2624,8 +3004,23 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
             existing.shift_default = shift;
             existing.avatar_style = avatar;
           }
+          if (supabaseClient) {
+            await supabaseClient.from('karyawan').update({
+              nama: nama,
+              pin_password: pin,
+              posisi: posisi,
+              level_posisi: level,
+              departemen: dept,
+              shift_default: shift,
+              avatar_style: avatar
+            }).eq('id', id);
+          }
         } else {
           var newIdx = employeesList.length + 1;
+          var defaultRoster = shift === 'SHIFT_1'
+            ? ['SHIFT_1', 'SHIFT_1', 'SHIFT_1', 'SHIFT_2', 'SHIFT_2', 'SHIFT_1', 'LIBUR']
+            : ['SHIFT_2', 'SHIFT_2', 'SHIFT_1', 'SHIFT_1', 'SHIFT_2', 'SHIFT_2', 'LIBUR'];
+
           var newEmp = {
             id: 'emp-' + Date.now(),
             nik: 'EMP-' + String(newIdx).padStart(3, '0'),
@@ -2635,14 +3030,29 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
             level_posisi: level,
             departemen: dept,
             email: nama.toLowerCase().replace(/\s+/g, '.') + '@perusahaan.id',
-            tanggal_bergabung: '2026-11-05',
+            tanggal_bergabung: new Date().toISOString().slice(0, 10),
             shift_default: shift,
             avatar_style: avatar,
             gps_distance: 15,
-            jadwal: shift === 'SHIFT_1'
-              ? ['SHIFT_1', 'SHIFT_1', 'SHIFT_1', 'SHIFT_2', 'SHIFT_2', 'SHIFT_1', 'LIBUR']
-              : ['SHIFT_2', 'SHIFT_2', 'SHIFT_1', 'SHIFT_1', 'SHIFT_2', 'SHIFT_2', 'LIBUR']
+            jadwal: defaultRoster
           };
+
+          if (supabaseClient) {
+            var insEmp = await supabaseClient.from('karyawan').insert([{
+              nik: newEmp.nik,
+              nama: nama,
+              pin_password: pin,
+              posisi: posisi,
+              level_posisi: level,
+              departemen: dept,
+              email: newEmp.email,
+              shift_default: shift,
+              avatar_style: avatar,
+              jadwal_minggu: defaultRoster
+            }]).select().single();
+            if (insEmp.data) newEmp.id = insEmp.data.id;
+          }
+
           employeesList.unshift(newEmp);
           focusedEmpId = newEmp.id;
         }
@@ -2650,21 +3060,6 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
         window.closeEmployeeModal();
         renderAll();
         showToast('Data karyawan "' + nama + '" (PIN: ' + pin + ') berhasil disimpan!');
-      };
-
-      window.fillUpTo40Employees = function () {
-        showToast('Kapasitas penuh 40 karyawan telah aktif dan siap digunakan!');
-        renderAll();
-      };
-
-      // Filter Rekap & Unduh CSV
-      window.resetReportFilterDates = function () {
-        document.getElementById('filter-date-start').value = '2026-11-01';
-        document.getElementById('filter-date-end').value = '2026-11-30';
-        document.getElementById('filter-report-emp').value = 'ALL';
-        document.getElementById('filter-report-pos').value = 'ALL';
-        window.renderWorkHoursReport();
-        showToast('Filter rentang tanggal direset ke bulan ini');
       };
 
       window.exportReportCSV = function () {
@@ -2757,10 +3152,18 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
       }, 1000);
 
       // 16. Inisialisasi Instan Saat DOM Siap
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', renderAll);
-      } else {
+      function initApp() {
+        applyDeployModeCleanUI();
         renderAll();
+        if (supabaseClient) {
+          loadFromSupabaseDatabase();
+        }
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initApp);
+      } else {
+        initApp();
       }
     })();
   </script>

@@ -1974,6 +1974,40 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
         var avatarSvg = build3DFemaleAvatar(emp.avatar_style || 'female_bella', current3DExpression);
         var bentoStage = document.getElementById('bento-3d-stage');
         var scannerStage = document.getElementById('scanner-3d-stage');
+        if (bentoStage) bentoStage.innerHTML = avatarSvg;
+        if (scannerStage) scannerStage.innerHTML = avatarSvg;
+
+        // Update Detail Kartu Profil Bento
+        document.getElementById('profile-name').textContent = emp.nama;
+        document.getElementById('profile-position').textContent = emp.posisi;
+        document.getElementById('profile-dept').textContent = (emp.level_posisi || 'Madya') + ' • ' + emp.departemen;
+        document.getElementById('profile-email').textContent = emp.email;
+        document.getElementById('profile-joined').textContent = emp.tanggal_bergabung;
+        document.getElementById('profile-pin-text').textContent = 'PIN: ' + emp.pin_password;
+        document.getElementById('profile-shift-pill').textContent = emp.shift_default === 'SHIFT_1' ? 'Shift 1 (Pagi)' : 'Shift 2 (Siang)';
+
+        var dist = emp.gps_distance || 14;
+        var withinRad = dist <= workSettings.maxRadiusMeters;
+        var gpsEl = document.getElementById('profile-gps-text');
+        if (gpsEl) {
+          gpsEl.textContent = withinRad ? '📍 Di Kantor (' + dist + 'm)' : '⚠️ Luar Radius (' + dist + 'm)';
+          gpsEl.className = withinRad ? 'text-emerald-600 truncate' : 'text-rose-600 truncate';
+        }
+
+        var scanOverlayName = document.getElementById('scan-overlay-name');
+        if (scanOverlayName) scanOverlayName.textContent = 'Target: ' + emp.nama + ' (' + emp.posisi + ')';
+
+        // Dropdown Karyawan di Form Pengajuan Sakit/Izin
+        var leaveEmpSel = document.getElementById('leave-emp-select');
+        if (leaveEmpSel) {
+          leaveEmpSel.innerHTML = employeesList.length > 0
+            ? employeesList.map(function (e) {
+                var sel = e.id === emp.id ? 'selected' : '';
+                return '<option value="' + e.id + '" ' + sel + '>' + e.nama + ' — ' + e.posisi + '</option>';
+              }).join('')
+            : '<option value="">Belum ada karyawan</option>';
+        }
+
         // Hitung Proporsi Shift 1 vs Shift 2 dari Karyawan Terdaftar
         var s1Count = employeesList.filter(function (e) { return e.shift_default === 'SHIFT_1'; }).length;
         var s2Count = Math.max(0, employeesList.length - s1Count);
@@ -2127,6 +2161,157 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
             '</tr>';
         }).join('');
       };
+
+      // 13. Render Pengajuan Sakit / Izin & Rekap Jam Kerja
+      window.renderLeaveRequests = function () {
+        var listEl = document.getElementById('leave-requests-list');
+        var statusFilter = document.getElementById('filter-leave-status')?.value || 'ALL';
+        var pendingCnt = leaveRequests.filter(function (r) { return r.status_persetujuan === 'Menunggu Persetujuan'; }).length;
+        var approvedCnt = leaveRequests.filter(function (r) { return r.status_persetujuan === 'Disetujui'; }).length;
+        var rejectedCnt = leaveRequests.filter(function (r) { return r.status_persetujuan === 'Ditolak'; }).length;
+
+        var badgePending = document.getElementById('badge-pending-leave');
+        if (badgePending) badgePending.textContent = pendingCnt;
+        var elP = document.getElementById('leave-count-pending');
+        var elA = document.getElementById('leave-count-approved');
+        var elR = document.getElementById('leave-count-rejected');
+        if (elP) elP.textContent = pendingCnt;
+        if (elA) elA.textContent = approvedCnt;
+        if (elR) elR.textContent = rejectedCnt;
+
+        if (!listEl) return;
+        var filtered = leaveRequests.filter(function (r) {
+          return statusFilter === 'ALL' || r.status_persetujuan === statusFilter;
+        });
+
+        if (filtered.length === 0) {
+          listEl.innerHTML = '<div class="p-6 rounded-2xl bg-slate-50 border border-slate-200/70 text-center text-xs font-bold text-slate-400">Belum ada pengajuan sakit / izin.</div>';
+          return;
+        }
+
+        listEl.innerHTML = filtered.map(function (req) {
+          var isPending = req.status_persetujuan === 'Menunggu Persetujuan';
+          var badgeCls = isPending
+            ? 'bg-amber-50 text-amber-700 border-amber-200'
+            : (req.status_persetujuan === 'Disetujui' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200');
+
+          var actionBtns = isPending
+            ? '<div class="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-200/60">' +
+                '<button type="button" onclick="window.decideLeaveRequest(\'' + req.id + '\', \'Disetujui\')" class="px-3 py-1.5 rounded-xl bg-[#16C759] hover:bg-emerald-600 text-white text-[11px] font-extrabold transition">✓ Setujui & Masukkan ke Rekap</button>' +
+                '<button type="button" onclick="window.decideLeaveRequest(\'' + req.id + '\', \'Ditolak\')" class="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-[11px] font-bold transition">✕ Tolak</button>' +
+              '</div>'
+            : '';
+
+          return '' +
+            '<div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs">' +
+              '<div class="flex items-start justify-between gap-2">' +
+                '<div>' +
+                  '<span class="px-2 py-0.5 rounded-md bg-sky-100 text-[#0D8BFF] text-[10px] font-extrabold mr-1.5">' + req.jenis_pengajuan + '</span>' +
+                  '<strong class="text-slate-900 font-extrabold">' + req.nama_karyawan + '</strong> ' +
+                  '<span class="text-slate-400 font-semibold">(' + req.posisi_karyawan + ')</span>' +
+                  '<p class="text-[11px] text-slate-500 font-bold mt-1">📅 Tanggal: ' + req.tanggal_mulai + ' s.d. ' + req.tanggal_selesai + '</p>' +
+                  '<p class="text-slate-700 mt-1">' + req.alasan + '</p>' +
+                  '<p class="text-[10px] text-slate-400 mt-1">📎 Info: ' + (req.kontak_lampiran || '-') + '</p>' +
+                '</div>' +
+                '<span class="px-2.5 py-1 rounded-xl border text-[10px] font-extrabold shrink-0 ' + badgeCls + '">' + req.status_persetujuan + '</span>' +
+              '</div>' +
+              actionBtns +
+            '</div>';
+        }).join('');
+      };
+
+      window.renderWorkHoursReport = function () {
+        var tbody = document.getElementById('report-logs-tbody');
+        if (!tbody) return;
+
+        var startInput = document.getElementById('filter-date-start');
+        var endInput = document.getElementById('filter-date-end');
+        if (startInput && !startInput.value) startInput.value = '2026-11-01';
+        if (endInput && !endInput.value) endInput.value = '2026-11-30';
+
+        var sDate = startInput ? startInput.value : '2026-01-01';
+        var eDate = endInput ? endInput.value : '2026-12-31';
+        var empFilter = document.getElementById('filter-report-emp')?.value || 'ALL';
+        var posFilter = document.getElementById('filter-report-pos')?.value || 'ALL';
+
+        var filtered = attendanceLogs.filter(function (log) {
+          var matchDate = (!sDate || log.tanggal >= sDate) && (!eDate || log.tanggal <= eDate);
+          var matchEmp = empFilter === 'ALL' || log.karyawan_id === empFilter;
+          var matchPos = posFilter === 'ALL' || log.posisi_karyawan === posFilter;
+          return matchDate && matchEmp && matchPos;
+        });
+
+        var totalMins = 0;
+        var totalLate = 0;
+        filtered.forEach(function (l) {
+          totalMins += Number(l.durasi_menit || 0);
+          totalLate += Number(l.menit_terlambat || 0);
+        });
+
+        var hrs = Math.floor(totalMins / 60);
+        var mins = totalMins % 60;
+        var hhmmStr = String(hrs).padStart(2, '0') + ':' + String(mins).padStart(2, '0') + ':00';
+        var avgHours = filtered.length > 0 ? ((totalMins / 60) / filtered.length).toFixed(1).replace('.', ',') : '0,0';
+
+        document.getElementById('rep-summary-count').textContent = filtered.length + ' Sesi';
+        document.getElementById('rep-summary-hhmm').textContent = hhmmStr;
+        document.getElementById('rep-summary-avg').textContent = avgHours + ' Jam';
+        document.getElementById('rep-summary-late').textContent = totalLate + ' Menit';
+
+        if (filtered.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="9" class="py-8 text-center text-slate-400 font-bold">Belum ada data log kehadiran pada rentang tanggal ini.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = filtered.map(function (l) {
+          var badge = l.menit_terlambat > 0
+            ? '<span class="px-2.5 py-1 rounded-xl bg-amber-50 text-amber-700 font-extrabold text-[10px]">' + l.status_kehadiran + '</span>'
+            : '<span class="px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-700 font-extrabold text-[10px]">' + l.status_kehadiran + '</span>';
+
+          return '' +
+            '<tr class="hover:bg-slate-50">' +
+              '<td class="py-3 px-3 font-mono font-bold text-slate-700">' + l.tanggal + '</td>' +
+              '<td class="py-3 px-3 font-extrabold text-slate-900">' + l.nama_karyawan + '</td>' +
+              '<td class="py-3 px-3 font-semibold text-[#0D8BFF]">' + l.posisi_karyawan + '</td>' +
+              '<td class="py-3 px-3 font-bold text-slate-700">' + l.shift_kode + '</td>' +
+              '<td class="py-3 px-3 font-mono font-bold text-emerald-700">' + l.jam_masuk + '</td>' +
+              '<td class="py-3 px-3 font-mono font-bold text-sky-700">' + l.jam_pulang + '</td>' +
+              '<td class="py-3 px-3 font-mono font-extrabold text-slate-900">' + l.durasi_teks + '</td>' +
+              '<td class="py-3 px-3 text-slate-600">' + l.status_lokasi + '</td>' +
+              '<td class="py-3 px-3">' + badge + '</td>' +
+            '</tr>';
+        }).join('');
+      };
+
+      window.resetReportFilterDates = function () {
+        var s = document.getElementById('filter-date-start');
+        var e = document.getElementById('filter-date-end');
+        if (s) s.value = '2026-11-01';
+        if (e) e.value = '2026-11-30';
+        window.renderWorkHoursReport();
+        showToast('Filter tanggal direset ke bulan berjalan.');
+      };
+
+      function updateStorageMetricsUI() {
+        var totalRows = employeesList.length + attendanceLogs.length + leaveRequests.length;
+        var usedMb = Math.max(0.01, (totalRows * 0.0005)).toFixed(2);
+        var pct = Math.min(100, ((usedMb / 500) * 100)).toFixed(2);
+
+        var elTxt = document.getElementById('storage-usage-text');
+        var elBar = document.getElementById('storage-usage-bar');
+        var elSide = document.getElementById('sidebar-db-pct');
+        var cEmp = document.getElementById('storage-count-emp');
+        var cAtt = document.getElementById('storage-count-att');
+        var cLeave = document.getElementById('storage-count-leave');
+
+        if (elTxt) elTxt.textContent = usedMb + ' MB / 500 MB (' + pct + '%)';
+        if (elBar) elBar.style.width = Math.max(2, Number(pct)) + '%';
+        if (elSide) elSide.textContent = pct + '%';
+        if (cEmp) cEmp.textContent = employeesList.length + ' baris';
+        if (cAtt) cAtt.textContent = attendanceLogs.length + ' baris';
+        if (cLeave) cLeave.textContent = leaveRequests.length + ' baris';
+      }
+
       // 14. Render Master Posisi di Modal, Filter & Menu Manajemen Posisi
       function renderMasterPositionsList() {
         var posSelectEmp = document.getElementById('form-emp-position');
@@ -2505,6 +2690,11 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
       window.closeStorageModal = function () {
         document.getElementById('modal-storage').classList.add('hidden');
       };
+      window.openStorageModal = function () {
+        updateStorageMetricsUI();
+        document.getElementById('purge-confirm-input').value = '';
+        document.getElementById('modal-storage').classList.remove('hidden');
+      };
       window.togglePurgeDateRange = function () {
         var mode = document.getElementById('purge-mode-select').value;
         var box = document.getElementById('purge-custom-dates');
@@ -2512,44 +2702,71 @@ CREATE TABLE IF NOT EXISTS pengajuan_izin (
         else box.classList.add('hidden');
       };
 
-      window.executeStoragePurge = function (e) {
-        e.preventDefault();
-        var confirmText = (document.getElementById('purge-confirm-input').value || '').trim().toUpperCase();
-        if (confirmText !== 'HAPUS') {
-          showToast('Ketik kata HAPUS dengan benar untuk mengonfirmasi pembersihan transaksi!');
-          return;
+      // Interaksi Karakter 3D, Kalender, dan Modal Karyawan
+      window.changeFocusedEmployee = function (empId) {
+        focusedEmpId = empId;
+        renderAll();
+      };
+      window.switch3DCharacterStyle = function (styleKey) {
+        var emp = employeesList.find(function (e) { return e.id === focusedEmpId; }) || employeesList[0];
+        if (emp) emp.avatar_style = styleKey;
+        renderAll();
+      };
+      window.set3DExpression = function (expr) {
+        current3DExpression = expr;
+        renderAll();
+      };
+      window.toggleWorkTimer = function () {
+        timerRunning = !timerRunning;
+        var btn = document.getElementById('btn-toggle-timer');
+        var badge = document.getElementById('timer-status-badge');
+        if (btn) btn.textContent = timerRunning ? '⏸' : '▶';
+        if (badge) {
+          badge.textContent = timerRunning ? 'Sedang Bekerja' : 'Dijeda';
+          badge.className = timerRunning
+            ? 'px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-extrabold'
+            : 'px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 text-[10px] font-extrabold';
         }
+      };
+      window.changeCalendarDay = function (delta) {
+        selectedCalendarDay = Math.min(30, Math.max(1, selectedCalendarDay + delta));
+        renderCalendarAndTimeline();
+      };
+      window.selectCalDate = function (dayNum) {
+        selectedCalendarDay = dayNum;
+        renderCalendarAndTimeline();
+      };
+      window.filterByDepartmentSidebar = function (deptName) {
+        var sel = document.getElementById('emp-dept-filter');
+        if (sel) sel.value = deptName;
+        window.switchMenu('employees');
+        window.renderEmployeesTable();
+      };
+      window.openAddEmployeeModal = function () {
+        document.getElementById('form-emp-id').value = '';
+        document.getElementById('form-emp-name').value = '';
+        document.getElementById('form-emp-pin').value = '123456';
+        renderMasterPositionsList();
+        document.getElementById('modal-employee').classList.remove('hidden');
+      };
+      window.editEmployee = function (empId) {
+        var emp = employeesList.find(function (e) { return e.id === empId; });
+        if (!emp) return;
+        renderMasterPositionsList();
+        document.getElementById('form-emp-id').value = emp.id;
+        document.getElementById('form-emp-name').value = emp.nama;
+        document.getElementById('form-emp-pin').value = emp.pin_password;
+        document.getElementById('form-emp-position').value = emp.posisi;
+        document.getElementById('form-emp-level').value = emp.level_posisi || 'Madya';
+        document.getElementById('form-emp-dept').value = emp.departemen;
+        document.getElementById('form-emp-shift').value = emp.shift_default;
+        document.getElementById('form-emp-avatar').value = emp.avatar_style || 'female_bella';
+        document.getElementById('modal-employee').classList.remove('hidden');
+      };
+      window.closeEmployeeModal = function () {
+        document.getElementById('modal-employee').classList.add('hidden');
+      };
 
-        var mode = document.getElementById('purge-mode-select').value;
-        var autoBackup = document.getElementById('purge-auto-backup').checked;
-
-        if (autoBackup && (attendanceLogs.length > 0 || leaveRequests.length > 0)) {
-          window.exportReportCSV();
-        }
-
-        var beforeCount = attendanceLogs.length + leaveRequests.length;
-
-        if (mode === 'ALL_LOGS') {
-          attendanceLogs = [];
-          leaveRequests = [];
-        } else if (mode === 'CUSTOM_RANGE') {
-          var s = document.getElementById('purge-date-start').value;
-          var end = document.getElementById('purge-date-end').value;
-          attendanceLogs = attendanceLogs.filter(function (l) {
-            return !(l.tanggal >= s && l.tanggal <= end);
-          });
-          leaveRequests = leaveRequests.filter(function (r) {
-            return !(r.tanggal_mulai >= s && r.tanggal_mulai <= end);
-          });
-        } else {
-          // Mode > 3 Bulan atau > 6 Bulan (Hapus transaksi lama, sisakan bulan berjalan)
-          var cutoff = mode === 'OLDER_3M' ? '2026-08-05' : '2026-05-05';
-          attendanceLogs = attendanceLogs.filter(function (l) { return l.tanggal >= cutoff; });
-          leaveRequests = leaveRequests.filter(function (r) { return r.tanggal_mulai >= cutoff; });
-        }
-
-        var afterCount = attendanceLogs.length + leaveRequests.length;
-        var deletedCount = Math.max(0, beforeCount - afterCount);
       // Proses Absensi Scan Wajah 3D oleh Admin (Beserta Upload Bucket absensi-media Opsional)
       window.processFaceAttendance = async function (mode) {
         var emp = employeesList.find(function (e) { return e.id === focusedEmpId; }) || employeesList[0];

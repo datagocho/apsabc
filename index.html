@@ -17,9 +17,9 @@
   <!-- KONFIGURASI SUPABASE (BARIS 17 - 23): TEMPEL URL & ANON KEY DI SINI   -->
   <!-- ===================================================================== -->
   <script>
-    window.IS_PREVIEW = false; // Ubah menjadi false saat deploy agar mode uji coba & data dummy hilang
-    window.SUPABASE_URL = "https://oderlxahaxjmgzgtianf.supabase.co";
-    window.SUPABASE_ANON_KEY = "sb_publishable_QqhPsG0jI925knC_7QauOg_3mwZD01s";
+    window.IS_PREVIEW = true; // Ubah menjadi false saat deploy agar mode uji coba & data dummy hilang
+    window.SUPABASE_URL = "https://GANTI-PROJECT-ID-ANDA.supabase.co";
+    window.SUPABASE_ANON_KEY = "GANTI_DENGAN_ANON_PUBLIC_KEY_SUPABASE_ANDA";
   </script>
 
   <style>
@@ -189,7 +189,7 @@
             <button type="button" onclick="window.switchMenu('employees')" id="nav-employees" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition">
               <span class="flex items-center gap-2.5">
                 <span>👩‍💼</span>
-                <span>Data 40 Karyawan</span>
+                <span>Data Karyawan</span>
               </span>
               <span id="nav-emp-badge" class="text-[10px] px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 font-extrabold">40</span>
             </button>
@@ -282,369 +282,13 @@
         <div class="flex-1 overflow-y-auto custom-scroll p-4 lg:p-6 pb-24 lg:pb-8">
 
           <!-- ========================================================= -->
-          <!-- MENU 1: DASBOR BENTO UTAMA (PERSIS REFERENSI STAFFCENTRAL) -->
-          <!-- ========================================================= -->
-          <section id="view-overview" class="grid grid-cols-1 lg:grid-cols-12 gap-5 max-w-[1440px] mx-auto">
-
-            <!-- KOLOM KIRI (4 COL): KARTU PROFIL WANITA 3D + 4 KARTU METRIK WARNA-WARNI -->
-            <div class="lg:col-span-4 flex flex-col gap-5">
-              <!-- Kartu Profil Wanita Animasi 3D -->
-              <div class="bento-card p-5 flex flex-col justify-between">
-                <div>
-                  <!-- Panggung Karakter Wanita 3D -->
-                  <div class="relative rounded-3xl bg-gradient-to-b from-sky-100/90 via-indigo-50/70 to-slate-100 aspect-square max-h-64 w-full mx-auto overflow-hidden border border-slate-200/80 flex flex-col items-center justify-center shadow-inner">
-                    <!-- Badge Shift & Skor Wajah -->
-                    <div class="absolute top-3 left-3 z-10 flex items-center gap-1.5">
-                      <span id="profile-shift-badge" class="px-2.5 py-1 rounded-full bg-[#0D8BFF] text-white text-[10px] font-extrabold shadow">Shift 1 (Pagi)</span>
-                    </div>
-                    <div class="absolute top-3 right-3 z-10">
-                      <span class="px-2.5 py-1 rounded-full bg-white/90 text-emerald-600 text-[10px] font-extrabold shadow-sm border border-emerald-200">✓ 3D Face ID 99.2%</span>
-                    </div>
-                    <!-- Render SVG Karakter 3D Interaktif (Pria & Wanita) -->
-                    <div id="overview-3d-stage" class="w-48 h-48 flex items-center justify-center avatar-3d-float">
-                      <!-- Diisi oleh fungsi get3DAvatarSVG -->
-                    </div>
-
-                    <!-- Tombol Ganti Karakter 3D (Wanita & Laki-Laki) & Ekspresi -->
-                    <div class="absolute bottom-2.5 inset-x-2.5 flex flex-wrap items-center justify-between gap-1 bg-white/90 backdrop-blur-md px-2 py-1.5 rounded-2xl border border-slate-200/80 shadow-sm">
-                      <div class="flex flex-wrap items-center gap-1">
-                        <button type="button" onclick="window.changeAvatarStyle('bella')" class="px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold bg-sky-500 text-white" id="btn-style-bella">👩 Bella</button>
-                        <button type="button" onclick="window.changeAvatarStyle('siti')" class="px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold bg-slate-100 text-slate-600 hover:bg-slate-200" id="btn-style-siti">🧕 Siti</button>
-                        <button type="button" onclick="window.changeAvatarStyle('rizky')" class="px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold bg-slate-100 text-slate-600 hover:bg-slate-200" id="btn-style-rizky">👨 Rizky</button>
-                        <button type="button" onclick="window.changeAvatarStyle('budi')" class="px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold bg-slate-100 text-slate-600 hover:bg-slate-200" id="btn-style-budi">👓 Budi</button>
-                      </div>
-                      <button type="button" onclick="window.cycle3DMood()" class="px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-extrabold border border-emerald-200">
-                        😊 Ekspresi
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- Detail Nama, Shift & Tanggal Bergabung (Tanpa Posisi & Departemen) -->
-                  <div class="mt-4 space-y-2.5">
-                    <div>
-                      <p class="text-[11px] font-semibold text-slate-400">Nama Karyawan</p>
-                      <h3 id="profile-name" class="text-2xl font-extrabold text-slate-900 tracking-tight">Bella Putri</h3>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-2 pt-1">
-                      <div class="p-2.5 rounded-2xl bg-slate-50 border border-slate-200/60">
-                        <p class="text-[10px] font-semibold text-slate-400">Jadwal Shift Aktif</p>
-                        <p id="profile-shift-info" class="text-xs font-extrabold text-slate-800 mt-0.5">Shift 1 (Pagi)</p>
-                        <span id="profile-gender-tag" class="inline-block mt-1 px-2 py-0.5 rounded-md bg-sky-100 text-[#0D8BFF] text-[10px] font-extrabold">Model 3D Aktif</span>
-                      </div>
-                      <div class="p-2.5 rounded-2xl bg-slate-50 border border-slate-200/60">
-                        <p class="text-[10px] font-semibold text-slate-400">Status GPS Kantor</p>
-                        <p id="profile-gps-status" class="text-xs font-extrabold text-emerald-600 mt-0.5">📍 Di Kantor (14m)</p>
-                        <span class="inline-block mt-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-extrabold">Terverifikasi AI</span>
-                      </div>
-                    </div>
-
-                    <div class="flex items-center justify-between pt-2 border-t border-slate-100">
-                      <div>
-                        <p class="text-[10px] font-semibold text-slate-400">Bergabung Sejak</p>
-                        <p id="profile-joined" class="text-xs font-extrabold text-slate-700">12 Sep 2022 • NIK: EMP-001</p>
-                      </div>
-                      <div class="flex items-center gap-2">
-                        <button type="button" onclick="window.switchMenu('scanner')" title="Scan Wajah Sekarang" class="w-9 h-9 rounded-full bg-[#0D8BFF] hover:bg-blue-600 text-white flex items-center justify-center shadow-md shadow-sky-500/30 transition">
-                          📷
-                        </button>
-                        <button type="button" onclick="window.switchMenu('leave')" title="Ajukan Izin / Sakit" class="w-9 h-9 rounded-full bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center shadow-md shadow-rose-500/30 transition">
-                          🏥
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 4 Kartu Metrik Warna-Warni (Pink, Hijau, Biru, Oranye) -->
-              <div class="grid grid-cols-2 gap-4">
-                <!-- Pink Card -->
-                <div class="rounded-3xl p-4 bg-[#FF5E97] text-white shadow-lg shadow-rose-500/20 flex flex-col justify-between min-h-[118px]">
-                  <div class="flex items-baseline gap-1">
-                    <span id="metric-days-company" class="text-3xl font-extrabold tracking-tight">697</span>
-                    <span class="text-xs font-bold opacity-90">hari</span>
-                  </div>
-                  <div class="flex items-center gap-1.5 text-xs font-bold opacity-95 mt-3">
-                    <span>⏱️</span>
-                    <span>Masa Kerja Aktif</span>
-                  </div>
-                </div>
-
-                <!-- Green Card -->
-                <div class="rounded-3xl p-4 bg-[#16C759] text-white shadow-lg shadow-emerald-500/20 flex flex-col justify-between min-h-[118px]">
-                  <div class="flex items-baseline gap-1">
-                    <span id="metric-present-count" class="text-3xl font-extrabold tracking-tight">38</span>
-                    <span class="text-xs font-bold opacity-90">/ 40 staf</span>
-                  </div>
-                  <div class="flex items-center gap-1.5 text-xs font-bold opacity-95 mt-3">
-                    <span>✅</span>
-                    <span>Hadir Hari Ini</span>
-                  </div>
-                </div>
-
-                <!-- Blue Card -->
-                <div class="rounded-3xl p-4 bg-[#1E88E5] text-white shadow-lg shadow-blue-500/20 flex flex-col justify-between min-h-[118px]">
-                  <div class="flex items-baseline gap-1">
-                    <span id="metric-total-hours" class="text-3xl font-extrabold tracking-tight">164</span>
-                    <span class="text-xs font-bold opacity-90">jam</span>
-                  </div>
-                  <div class="flex items-center gap-1.5 text-xs font-bold opacity-95 mt-3">
-                    <span>⏳</span>
-                    <span>Jam Kerja Bulan Ini</span>
-                  </div>
-                </div>
-
-                <!-- Orange Card -->
-                <div class="rounded-3xl p-4 bg-[#FF5722] text-white shadow-lg shadow-orange-500/20 flex flex-col justify-between min-h-[118px]">
-                  <div class="flex items-baseline gap-1">
-                    <span id="metric-late-leave" class="text-3xl font-extrabold tracking-tight">2</span>
-                    <span class="text-xs font-bold opacity-90">orang</span>
-                  </div>
-                  <div class="flex items-center gap-1.5 text-xs font-bold opacity-95 mt-3">
-                    <span>🏥</span>
-                    <span>Izin / Sakit / Telat</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- KOLOM TENGAH (4 COL): GAUGE MINGGUAN + PELACAK WAKTU KERJA + BANNER STAFFCENTRAL -->
-            <div class="lg:col-span-4 flex flex-col gap-5">
-              <!-- Semi-Circular Segmented Gauge (Aktivitas & Kehadiran Mingguan) -->
-              <div class="bento-card p-5">
-                <div class="flex items-center justify-between mb-2">
-                  <span class="text-xs font-extrabold text-slate-800">Capaian Jam Kerja Mingguan</span>
-                  <span class="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">Target 40 Jam</span>
-                </div>
-
-                <!-- Segmented Arc Gauge SVG -->
-                <div class="relative flex flex-col items-center justify-center my-2">
-                  <svg viewBox="0 0 220 125" class="w-56 h-32 overflow-visible">
-                    <g id="gauge-segments-group"></g>
-                  </svg>
-                  <div class="text-center -mt-10">
-                    <p id="gauge-percentage-text" class="text-3xl font-extrabold text-slate-900">86%</p>
-                    <p class="text-[11px] font-semibold text-slate-400">Kepatuhan Shift Minggu Ini</p>
-                  </div>
-                </div>
-
-                <div class="space-y-2.5 mt-4 pt-3 border-t border-slate-100 text-xs">
-                  <div class="flex items-center justify-between">
-                    <span class="flex items-center gap-2 font-bold text-slate-700">
-                      <span class="w-2.5 h-2.5 rounded-full bg-[#16C759]"></span>
-                      Hadir Tepat Waktu (Shift 1 & 2)
-                    </span>
-                    <span id="gauge-ontime-pct" class="font-extrabold text-slate-900">78%</span>
-                  </div>
-                  <div class="flex items-center justify-between">
-                    <span class="flex items-center gap-2 font-bold text-slate-700">
-                      <span class="w-2.5 h-2.5 rounded-full bg-[#0D8BFF]"></span>
-                      Toleransi / Lembur Terjadwal
-                    </span>
-                    <span id="gauge-overtime-pct" class="font-extrabold text-slate-900">22%</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Widget Pelacak Jam Kerja Real-Time (Time Tracking) -->
-              <div class="bento-card p-5">
-                <div class="flex items-center justify-between mb-3">
-                  <h4 class="text-xs font-extrabold text-slate-800">Pelacak Waktu Kerja (Live Timer)</h4>
-                  <span id="timer-status-pill" class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Sedang Bekerja</span>
-                </div>
-
-                <div class="p-4 rounded-2xl bg-slate-100/90 border border-slate-200/70 flex items-center justify-between">
-                  <div>
-                    <p id="timer-shift-label" class="text-[11px] font-semibold text-slate-400">Shift 1 (Pagi) • Target 8 Jam</p>
-                    <p id="live-work-timer" class="text-2xl sm:text-3xl font-mono font-extrabold text-slate-900 tracking-tight mt-0.5">05:42:18</p>
-                  </div>
-                  <button type="button" onclick="window.toggleWorkTimer()" id="btn-toggle-timer" class="w-11 h-11 rounded-2xl bg-[#0D8BFF] hover:bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-sky-500/30 transition text-sm font-bold">
-                    ⏸
-                  </button>
-                </div>
-
-                <!-- Log Singkat Aktivitas Hari Ini -->
-                <div class="mt-4 space-y-2.5">
-                  <div class="flex items-center justify-between text-xs p-2.5 rounded-xl bg-slate-50">
-                    <div class="flex items-center gap-2.5">
-                      <span class="w-7 h-7 rounded-xl bg-sky-100 text-[#0D8BFF] flex items-center justify-center font-bold">☀️</span>
-                      <div>
-                        <p class="font-extrabold text-slate-800">Absen Masuk (Check-In)</p>
-                        <p id="overview-checkin-time" class="text-[11px] font-semibold text-slate-400">06:55 WIB • Radius 12m</p>
-                      </div>
-                    </div>
-                    <span class="text-[11px] font-extrabold text-emerald-600">Tepat Waktu</span>
-                  </div>
-
-                  <div class="flex items-center justify-between text-xs p-2.5 rounded-xl bg-slate-50">
-                    <div class="flex items-center gap-2.5">
-                      <span class="w-7 h-7 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">🌙</span>
-                      <div>
-                        <p class="font-extrabold text-slate-800">Jadwal Pulang (Check-Out)</p>
-                        <p id="overview-checkout-time" class="text-[11px] font-semibold text-slate-400">15:00 WIB • Durasi 8 Jam</p>
-                      </div>
-                    </div>
-                    <button type="button" onclick="window.triggerDemoFaceScan()" class="text-[11px] font-extrabold text-[#0D8BFF] hover:underline">Scan Pulang</button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Gradient Card StaffCentral Premium -->
-              <div class="rounded-3xl p-5 bg-gradient-to-br from-[#1E88E5] via-[#0D8BFF] to-[#00BFA5] text-white shadow-lg shadow-sky-500/20 flex flex-col justify-between">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <span class="w-7 h-7 rounded-xl bg-white/20 flex items-center justify-center font-extrabold text-sm">S</span>
-                    <span class="text-xs font-extrabold">StaffCentral AI</span>
-                  </div>
-                  <span class="px-2.5 py-0.5 rounded-full bg-fuchsia-500 text-white text-[10px] font-extrabold uppercase tracking-wider">40 Staf Aktif</span>
-                </div>
-                <div class="my-3">
-                  <h4 class="text-base font-extrabold leading-snug">Kelola Absensi Wajah 3D, Jadwal 2 Shift & Izin dalam Satu Klik</h4>
-                  <p class="text-[11px] text-white/85 mt-1">Dilengkapi penghemat memori Supabase Gratis & backup CSV instan.</p>
-                </div>
-                <div class="flex items-center justify-between pt-2 border-t border-white/20">
-                  <button type="button" onclick="window.switchMenu('reports')" class="px-3 py-1.5 rounded-xl bg-white text-slate-900 font-extrabold text-xs shadow hover:bg-slate-100 transition">
-                    📊 Buka Rekap Tanggal
-                  </button>
-                  <button type="button" onclick="window.openStorageManagerModal()" class="text-xs font-extrabold text-white underline">
-                    🧹 Kelola Memori DB
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <!-- KOLOM KANAN (4 COL): PROPORSI SHIFT 1 VS SHIFT 2 + KALENDER & TIMELINE JADWAL -->
-            <div class="lg:col-span-4 flex flex-col gap-5">
-              <!-- Proporsi Karyawan Shift 1 vs Shift 2 (Vertical Split Bars) -->
-              <div class="bento-card p-5">
-                <div class="flex items-center justify-between mb-3">
-                  <h4 class="text-xs font-extrabold text-slate-800">Format & Pembagian 2 Shift</h4>
-                  <button type="button" onclick="window.switchMenu('schedule')" class="text-[11px] font-bold text-[#0D8BFF] hover:underline">Ubah Roster</button>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3 h-36">
-                  <div class="rounded-2xl bg-[#16C759] text-white p-4 flex flex-col justify-end relative overflow-hidden shadow-md shadow-emerald-500/15">
-                    <span class="absolute top-3 right-3 text-lg opacity-80">☀️</span>
-                    <p id="split-shift1-pct" class="text-3xl font-extrabold leading-none">55%</p>
-                    <p class="text-xs font-extrabold mt-1">Shift 1 (Pagi)</p>
-                    <p id="split-shift1-hours" class="text-[10px] opacity-90 font-semibold">07:00 - 15:00 (22 Staf)</p>
-                  </div>
-
-                  <div class="rounded-2xl bg-[#0D8BFF] text-white p-4 flex flex-col justify-end relative overflow-hidden shadow-md shadow-sky-500/15">
-                    <span class="absolute top-3 right-3 text-lg opacity-80">🌤️</span>
-                    <p id="split-shift2-pct" class="text-3xl font-extrabold leading-none">45%</p>
-                    <p class="text-xs font-extrabold mt-1">Shift 2 (Siang)</p>
-                    <p id="split-shift2-hours" class="text-[10px] opacity-90 font-semibold">15:00 - 23:00 (18 Staf)</p>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Kalender & Timeline Shift Harian -->
-              <div class="bento-card p-5 flex-1 flex flex-col justify-between">
-                <div>
-                  <!-- Header Kalender -->
-                  <div class="flex items-center justify-between mb-3">
-                    <button type="button" onclick="window.showToast('Menampilkan jadwal minggu berjalan')" class="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-xs font-bold">‹</button>
-                    <h4 class="text-xs font-extrabold text-slate-900">Jadwal & Kalender Shift</h4>
-                    <button type="button" onclick="window.showToast('Menampilkan jadwal minggu berikutnya')" class="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-xs font-bold">›</button>
-                  </div>
-
-                  <!-- Grid Hari Singkat -->
-                  <div class="grid grid-cols-7 text-center text-[11px] font-bold text-slate-400 mb-2">
-                    <span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span class="text-rose-500">Sab</span><span class="text-rose-500">Min</span>
-                  </div>
-                  <div class="grid grid-cols-7 gap-1 text-center text-xs font-bold">
-                    <span class="py-1.5 text-slate-400">29</span>
-                    <span class="py-1.5 text-slate-400">30</span>
-                    <span class="py-1.5 rounded-lg hover:bg-slate-100">1</span>
-                    <span class="py-1.5 rounded-lg hover:bg-slate-100">2</span>
-                    <span class="py-1.5 rounded-lg hover:bg-slate-100">3</span>
-                    <span class="py-1.5 text-rose-500">4</span>
-                    <span class="py-1.5 text-rose-500">5</span>
-                    <span class="py-1.5 rounded-lg hover:bg-slate-100">6</span>
-                    <span class="py-1.5 rounded-lg hover:bg-slate-100">7</span>
-                    <span class="py-1.5 rounded-lg hover:bg-slate-100">8</span>
-                    <span class="py-1.5 rounded-lg hover:bg-slate-100">9</span>
-                    <span class="py-1.5 rounded-full bg-[#0D8BFF] text-white font-extrabold shadow">10</span>
-                    <span class="py-1.5 text-rose-500">11</span>
-                    <span class="py-1.5 text-rose-500">12</span>
-                  </div>
-
-                  <!-- Timeline Daftar Shift Aktif Hari Ini -->
-                  <div class="mt-5 pt-4 border-t border-slate-100 space-y-3" id="overview-timeline-list">
-                    <!-- Diisi oleh JS -->
-                  </div>
-                </div>
-              </div>
-            </div>
-
-          </section>
-
-          <!-- ========================================================= -->
-          <!-- MENU 2: TERMINAL SCAN WAJAH 3D ADMIN                      -->
-          <!-- ========================================================= -->
-          <section id="view-scanner" class="hidden max-w-5xl mx-auto space-y-5">
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-              <div class="lg:col-span-6 bento-card p-5 flex flex-col justify-between">
-                <div>
-                  <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-sm font-extrabold text-slate-900">📷 Pemindai Biometrik Wajah 3D</h3>
-                    <button type="button" onclick="window.toggleRealWebcam()" class="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-extrabold">
-                      🎥 Kamera Asli / 3D
-                    </button>
-                  </div>
-
-                  <div class="relative rounded-3xl bg-slate-950 aspect-square max-h-72 w-full mx-auto overflow-hidden flex items-center justify-center border-2 border-sky-500/40 shadow-inner">
-                    <video id="camera-video" autoplay playsinline muted class="hidden absolute inset-0 w-full h-full object-cover"></video>
-                    <div id="scanner-3d-stage" class="w-48 h-48 flex items-center justify-center avatar-3d-float"></div>
-                    <div class="laser-line"></div>
-                    <div class="absolute bottom-3 inset-x-3 bg-slate-900/85 backdrop-blur-md px-3 py-2 rounded-2xl border border-slate-700 flex items-center justify-between text-white text-[11px]">
-                      <span class="font-bold text-emerald-400">● AI Face Match: 99.3%</span>
-                      <span class="font-mono text-slate-300">📍 Radius 11m (Valid)</span>
-                    </div>
-                  </div>
-
-                  <div class="mt-4 space-y-3">
-                    <div>
-                      <label class="text-xs font-bold text-slate-700 block mb-1">Pilih Nama Karyawan</label>
-                      <select id="scanner-emp-select" onchange="window.selectFocusedEmployee(this.value)" class="w-full px-3.5 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-extrabold text-slate-900"></select>
-                    </div>
-                    <div>
-                      <label class="text-xs font-bold text-slate-700 block mb-1">Shift Kerja Hari Ini</label>
-                      <select id="scanner-shift-select" class="w-full px-3.5 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-extrabold text-slate-900">
-                        <option value="SHIFT_1">Shift 1 (Pagi)</option>
-                        <option value="SHIFT_2">Shift 2 (Siang)</option>
-                      </select>
-                    </div>
-                    <div class="grid grid-cols-2 gap-3 pt-1">
-                      <button type="button" onclick="window.submitFaceAttendance('MASUK')" class="py-3 rounded-2xl bg-[#16C759] hover:bg-emerald-600 text-white font-extrabold text-xs shadow-lg shadow-emerald-500/25">
-                        ☀️ Scan Masuk
-                      </button>
-                      <button type="button" onclick="window.submitFaceAttendance('PULANG')" class="py-3 rounded-2xl bg-[#0D8BFF] hover:bg-blue-600 text-white font-extrabold text-xs shadow-lg shadow-sky-500/25">
-                        🌙 Scan Pulang
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="lg:col-span-6 bento-card p-5">
-                <h3 class="text-sm font-extrabold text-slate-900 mb-1">Riwayat Scan Wajah Hari Ini</h3>
-                <p class="text-xs font-semibold text-slate-400 mb-3">Tercatat otomatis beserta jam kerja & lokasi GPS</p>
-                <div id="scanner-recent-logs" class="space-y-2.5 max-h-[420px] overflow-y-auto custom-scroll pr-1"></div>
-              </div>
-            </div>
-          </section>
-
-          <!-- ========================================================= -->
-          <!-- MENU 3: DATA 40 KARYAWAN & PIN LOGIN (TANPA POSISI/DEPT)  -->
+          <!-- MENU 3: DATA KARYAWAN & PIN LOGIN (DENGAN EDIT & HAPUS)   -->
           <!-- ========================================================= -->
           <section id="view-employees" class="hidden max-w-6xl mx-auto space-y-5">
             <div class="bento-card p-5 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h3 class="text-base font-extrabold text-slate-900">Data 40 Karyawan (Pria & Wanita 3D)</h3>
-                <p class="text-xs font-semibold text-slate-400">Setiap karyawan cukup login menggunakan <strong>Nama Karyawan</strong> dan <strong>PIN</strong></p>
+                <h3 class="text-base font-extrabold text-slate-900">Data Karyawan (Pria & Wanita 3D)</h3>
+                <p class="text-xs font-semibold text-slate-400">Kelola daftar staf, edit data, hapus, atau tambah karyawan baru</p>
               </div>
               <div class="flex flex-wrap items-center gap-2">
                 <input type="text" id="emp-search-input" oninput="window.renderEmployeesGrid()" placeholder="Cari nama karyawan..." class="px-3.5 py-2 rounded-2xl bg-slate-100 border border-slate-200 text-xs font-bold text-slate-800 focus:outline-none" />
@@ -876,15 +520,16 @@
   </div>
 
   <!-- =============================================================== -->
-  <!-- MODAL 3: TAMBAH KARYAWAN BARU (TANPA POSISI & DEPARTEMEN)       -->
+  <!-- MODAL 3: TAMBAH / EDIT KARYAWAN                                 -->
   <!-- =============================================================== -->
   <div id="modal-add-employee" class="hidden fixed inset-0 z-[1000000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 relative">
       <button type="button" onclick="window.closeAddEmployeeModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-extrabold text-xs">✕</button>
-      <h3 class="text-base font-extrabold text-slate-900 mb-1">👤 Tambah Karyawan Baru</h3>
+      <h3 id="modal-emp-title" class="text-base font-extrabold text-slate-900 mb-1">👤 Tambah Karyawan Baru</h3>
       <p class="text-xs text-slate-400 font-semibold mb-4">Karyawan langsung bisa login di HP menggunakan Nama & PIN ini</p>
 
       <form onsubmit="window.handleSaveNewEmployee(event)" class="space-y-3.5">
+        <input type="hidden" id="edit-emp-id" value="" />
         <div>
           <label class="text-xs font-bold text-slate-700 block mb-1">Nama Lengkap Karyawan</label>
           <input type="text" id="new-emp-name" required placeholder="Contoh: Rizky Pratama / Rina Kartika" class="w-full px-3.5 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-extrabold" />
@@ -914,7 +559,7 @@
           </select>
         </div>
         <button type="submit" class="w-full py-3 rounded-2xl bg-[#16C759] hover:bg-emerald-600 text-white font-extrabold text-xs shadow-lg mt-2">
-          ✓ Simpan Karyawan Baru
+          ✓ Simpan Data Karyawan
         </button>
       </form>
     </div>
@@ -1624,21 +1269,30 @@
           var genderBadge = isMaleAvatar(e.avatar_style) ? "👨 Pria 3D" : "👩 Wanita 3D";
           return '' +
             '<div class="bento-card p-4 flex flex-col justify-between">' +
-              '<div class="flex items-center gap-3">' +
-                '<div class="w-14 h-14 rounded-2xl bg-sky-50 border border-sky-100 overflow-hidden shrink-0">' +
-                  getFemale3DAvatarSVG(e.avatar_style, "SMILE") +
+              '<div>' +
+                '<div class="flex items-center justify-between mb-2">' +
+                  '<span class="px-2 py-0.5 rounded-lg font-extrabold text-[10px] ' + (isS1 ? "bg-emerald-100 text-emerald-700" : "bg-sky-100 text-sky-700") + '">' +
+                    (isS1 ? "Shift 1 Pagi" : "Shift 2 Siang") +
+                  '</span>' +
+                  '<div class="flex items-center gap-1">' +
+                    '<button type="button" onclick="window.openEditEmployeeModal(\'' + e.id + '\')" class="w-7 h-7 rounded-xl bg-slate-100 hover:bg-sky-50 text-slate-600 hover:text-[#0D8BFF] flex items-center justify-center text-xs font-bold" title="Edit Karyawan">✏️</button>' +
+                    '<button type="button" onclick="window.deleteEmployee(\'' + e.id + '\')" class="w-7 h-7 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 flex items-center justify-center text-xs font-bold" title="Hapus Karyawan">🗑️</button>' +
+                  '</div>' +
                 '</div>' +
-                '<div class="min-w-0">' +
-                  '<p class="text-xs font-extrabold text-slate-900 truncate">' + e.nama + '</p>' +
-                  '<p class="text-[11px] font-bold text-[#0D8BFF] truncate">' + e.nik + '</p>' +
-                  '<p class="text-[10px] font-semibold text-slate-400">' + genderBadge + '</p>' +
+                '<div class="flex items-center gap-3">' +
+                  '<div class="w-14 h-14 rounded-2xl bg-sky-50 border border-sky-100 overflow-hidden shrink-0">' +
+                    getFemale3DAvatarSVG(e.avatar_style, "SMILE") +
+                  '</div>' +
+                  '<div class="min-w-0">' +
+                    '<p class="text-xs font-extrabold text-slate-900 truncate">' + e.nama + '</p>' +
+                    '<p class="text-[11px] font-bold text-[#0D8BFF] truncate">' + e.nik + '</p>' +
+                    '<p class="text-[10px] font-semibold text-slate-400">' + genderBadge + '</p>' +
+                  '</div>' +
                 '</div>' +
               '</div>' +
               '<div class="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px]">' +
                 '<span class="font-mono font-bold text-slate-500">PIN: ' + e.pin_password + '</span>' +
-                '<span class="px-2 py-0.5 rounded-lg font-extrabold text-[10px] ' + (isS1 ? "bg-emerald-100 text-emerald-700" : "bg-sky-100 text-sky-700") + '">' +
-                  (isS1 ? "Shift 1 Pagi" : "Shift 2 Siang") +
-                '</span>' +
+                '<span class="text-[10px] font-bold text-slate-400">' + (e.tanggal_bergabung || "12 Sep 2022") + '</span>' +
               '</div>' +
             '</div>';
         }).join("");
@@ -2137,6 +1791,22 @@
       };
 
       window.openAddEmployeeModal = function () {
+        document.getElementById("edit-emp-id").value = "";
+        document.getElementById("modal-emp-title").textContent = "👤 Tambah Karyawan Baru";
+        document.getElementById("new-emp-name").value = "";
+        document.getElementById("new-emp-pin").value = "123456";
+        document.getElementById("modal-add-employee").classList.remove("hidden");
+      };
+
+      window.openEditEmployeeModal = function (empId) {
+        var emp = employeesList.find(function (x) { return x.id === empId; });
+        if (!emp) return;
+        document.getElementById("edit-emp-id").value = emp.id;
+        document.getElementById("modal-emp-title").textContent = "✏️ Edit Data Karyawan";
+        document.getElementById("new-emp-name").value = emp.nama;
+        document.getElementById("new-emp-pin").value = emp.pin_password;
+        document.getElementById("new-emp-shift").value = emp.shift_default;
+        document.getElementById("new-emp-avatar").value = emp.avatar_style;
         document.getElementById("modal-add-employee").classList.remove("hidden");
       };
 
@@ -2146,27 +1816,52 @@
 
       window.handleSaveNewEmployee = async function (e) {
         e.preventDefault();
+        var editId = document.getElementById("edit-emp-id").value;
         var name = document.getElementById("new-emp-name").value.trim();
         var pin = document.getElementById("new-emp-pin").value.trim();
         var avatar = document.getElementById("new-emp-avatar").value;
         var shift = document.getElementById("new-emp-shift").value;
 
-        var newEmp = {
-          id: "emp-" + Date.now(),
-          nik: "EMP-" + String(employeesList.length + 1).padStart(3, "0"),
-          nama: name,
-          pin_password: pin,
-          shift_default: shift,
-          avatar_style: avatar,
-          tanggal_bergabung: new Date().toLocaleDateString("id-ID"),
-          jadwal_minggu: [shift, shift, shift, shift, shift, "SHIFT_1", "LIBUR"]
-        };
+        if (editId) {
+          var target = employeesList.find(function (x) { return x.id === editId; });
+          if (target) {
+            target.nama = name;
+            target.pin_password = pin;
+            target.avatar_style = avatar;
+            target.shift_default = shift;
+            showToast("Data karyawan " + name + " berhasil diperbarui!");
+          }
+        } else {
+          var newEmp = {
+            id: "emp-" + Date.now(),
+            nik: "EMP-" + String(employeesList.length + 1).padStart(3, "0"),
+            nama: name,
+            pin_password: pin,
+            shift_default: shift,
+            avatar_style: avatar,
+            tanggal_bergabung: new Date().toLocaleDateString("id-ID"),
+            jadwal_minggu: [shift, shift, shift, shift, shift, "SHIFT_1", "LIBUR"]
+          };
+          employeesList.unshift(newEmp);
+          focusedEmpId = newEmp.id;
+          showToast("Karyawan " + name + " berhasil ditambahkan!");
+        }
 
-        employeesList.unshift(newEmp);
-        focusedEmpId = newEmp.id;
         window.closeAddEmployeeModal();
         renderAll();
-        showToast("Karyawan " + name + " berhasil ditambahkan!");
+      };
+
+      window.deleteEmployee = function (empId) {
+        var target = employeesList.find(function (x) { return x.id === empId; });
+        if (!target) return;
+        if (confirm("Apakah Anda yakin ingin menghapus data karyawan " + target.nama + "?")) {
+          employeesList = employeesList.filter(function (x) { return x.id !== empId; });
+          if (focusedEmpId === empId && employeesList.length > 0) {
+            focusedEmpId = employeesList[0].id;
+          }
+          renderAll();
+          showToast("Karyawan berhasil dihapus dari sistem.");
+        }
       };
 
       window.handleSubmitLeave = function (e) {

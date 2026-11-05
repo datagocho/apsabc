@@ -1,0 +1,2768 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StaffCentral Indonesia — Absensi Wajah 3D & Manajemen 2 Shift (40 Karyawan)</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Supabase UMD Non-Blocking (opsional saat produksi) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: #F3F5F9;
+      color: #111827;
+      overflow: hidden;
+    }
+    /* Custom Scrollbar Halus */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94A3B8;
+    }
+
+    /* Animasi Karakter Wanita 3D Hidup */
+    @keyframes float3d {
+      0%, 100% { transform: translateY(0px) rotate(0deg) scale(1); }
+      50% { transform: translateY(-6px) rotate(0.8deg) scale(1.015); }
+    }
+    @keyframes blink3d {
+      0%, 92%, 100% { transform: scaleY(1); }
+      95% { transform: scaleY(0.08); }
+    }
+    @keyframes scanLaser {
+      0% { top: 8%; opacity: 0.9; }
+      50% { top: 88%; opacity: 1; }
+      100% { top: 8%; opacity: 0.9; }
+    }
+    @keyframes pulseRing {
+      0% { transform: scale(0.95); opacity: 0.7; }
+      50% { transform: scale(1.03); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.7; }
+    }
+    .avatar-3d-float {
+      animation: float3d 4s ease-in-out infinite;
+      transform-origin: center bottom;
+    }
+    .avatar-eye-blink {
+      animation: blink3d 4.5s infinite;
+      transform-origin: center;
+      transform-box: fill-box;
+    }
+    .laser-line {
+      position: absolute;
+      left: 8%;
+      right: 8%;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #0D8BFF, #16C759, #0D8BFF, transparent);
+      box-shadow: 0 0 14px #0D8BFF;
+      animation: scanLaser 2.6s ease-in-out infinite;
+      pointer-events: none;
+    }
+    .biometric-frame {
+      animation: pulseRing 2.5s ease-in-out infinite;
+    }
+    .bento-card {
+      background: #FFFFFF;
+      border-radius: 24px;
+      box-shadow: 0 8px 30px rgba(15, 23, 42, 0.04);
+      border: 1px solid rgba(226, 232, 240, 0.8);
+    }
+  </style>
+</head>
+<body>
+  <!-- CONTAINER UTAMA FULL-SCREEN -->
+  <div id="app-root" style="position: fixed; inset: 0; z-index: 999999; display: flex; flex-direction: column; background-color: #F3F5F9; overflow: hidden;">
+
+    <!-- TOP BAR MODE PREVIEW & TOMBOL UJI COBA INSTAN -->
+    <div class="bg-slate-900 text-white px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-xs shrink-0 border-b border-slate-800 shadow-md">
+      <div class="flex items-center gap-2">
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+          MODE UJI COBA AKTIF
+        </span>
+        <span id="active-session-badge" class="text-slate-300 font-medium hidden sm:inline">
+          Akses: <strong class="text-white">Admin HR (Akses Penuh)</strong>
+        </span>
+      </div>
+
+      <div class="flex items-center flex-wrap gap-1.5">
+        <button type="button" onclick="window.openLoginModal('STAFF')" class="px-2.5 py-1 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white font-bold transition flex items-center gap-1 shadow-sm">
+          🔑 Buka Form Login (Nama + PIN)
+        </button>
+        <button type="button" onclick="window.quickSwitchUser('STAFF')" class="px-2.5 py-1 rounded-lg bg-[#16C759] hover:bg-emerald-600 text-white font-bold transition flex items-center gap-1 shadow-sm">
+          👩 Quick Karyawan (Bella - Nama & PIN)
+        </button>
+        <button type="button" onclick="window.quickSwitchUser('ADMIN')" class="px-2.5 py-1 rounded-lg bg-[#0D8BFF] hover:bg-sky-600 text-white font-bold transition flex items-center gap-1 shadow-sm">
+          🛡️ Quick Admin
+        </button>
+        <button type="button" onclick="window.triggerDemoFaceScan()" class="px-2.5 py-1 rounded-lg bg-[#FF5E97] hover:bg-rose-500 text-white font-bold transition flex items-center gap-1 shadow-sm">
+          📸 Uji Scan Wajah 3D
+        </button>
+        <button type="button" onclick="window.switchMenu('leave')" class="px-2.5 py-1 rounded-lg bg-teal-500 hover:bg-teal-600 text-white font-bold transition flex items-center gap-1 shadow-sm">
+          🏥 Pengajuan Izin/Sakit
+        </button>
+        <button type="button" onclick="window.openStorageModal()" class="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold transition flex items-center gap-1 shadow-sm">
+          🧹 Kelola Memori DB
+        </button>
+        <button type="button" onclick="window.openWorkHoursModal()" class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold transition flex items-center gap-1 shadow-sm">
+          ⏰ Ubah Jam Kerja
+        </button>
+        <button type="button" onclick="window.openSqlModal()" class="px-2.5 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold transition flex items-center gap-1">
+          🗄️ SQL Supabase
+        </button>
+      </div>
+    </div>
+
+    <!-- WORKSPACE UTAMA (SIDEBAR KIRI + AREA KONTEN BENTO) -->
+    <div class="flex-1 flex overflow-hidden relative">
+
+      <!-- SIDEBAR KIRI DESKTOP (Gaya Referensi StaffCentral) -->
+      <aside class="hidden lg:flex flex-col w-64 bg-white border-r border-slate-200/80 p-5 shrink-0 justify-between overflow-y-auto">
+        <div>
+          <!-- Brand Logo -->
+          <div class="flex items-center gap-2.5 px-1 mb-5">
+            <div class="w-9 h-9 rounded-xl bg-[#0D8BFF] flex items-center justify-center text-white font-extrabold text-lg shadow-md shadow-sky-500/25">
+              S
+            </div>
+            <div>
+              <h1 class="text-lg font-extrabold tracking-tight text-slate-900 leading-none">StaffCentral</h1>
+              <span class="text-[11px] font-semibold text-slate-400">Absensi Wajah 3D & Shift</span>
+            </div>
+          </div>
+
+          <!-- Pemilih Organisasi / Kuota 40 Anggota -->
+          <div class="p-3 rounded-2xl bg-slate-100/90 border border-slate-200/60 mb-5 flex items-center justify-between">
+            <div>
+              <p class="text-xs font-extrabold text-slate-800">PT BiruGelombang IT</p>
+              <p id="sidebar-total-members" class="text-[11px] text-slate-500 font-medium">40 anggota terdaftar</p>
+            </div>
+            <span class="px-2 py-0.5 rounded-lg bg-white text-[10px] font-extrabold text-[#0D8BFF] shadow-sm">2 Shift</span>
+          </div>
+
+          <!-- Navigasi Utama -->
+          <nav class="space-y-1.5">
+            <button type="button" onclick="window.switchMenu('overview')" id="nav-btn-overview" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold transition bg-[#0D8BFF] text-white shadow-md shadow-sky-500/25">
+              <span class="flex items-center gap-2.5">
+                <span>📊</span>
+                <span>Dashboard Karyawan</span>
+              </span>
+              <span>▾</span>
+            </button>
+
+            <!-- Sub-list Departemen dengan Dot Warna & Counter (Sesuai Gambar Referensi) -->
+            <div id="sidebar-dept-counters" class="pl-3 pr-2 py-1.5 space-y-1.5 text-xs">
+              <!-- Diisi otomatis oleh JS -->
+            </div>
+
+            <button type="button" onclick="window.switchMenu('facescan')" id="nav-btn-facescan" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition">
+              <span class="flex items-center gap-2.5">
+                <span>📸</span>
+                <span>Scan Wajah 3D (Admin)</span>
+              </span>
+              <span class="px-1.5 py-0.5 rounded-md bg-rose-100 text-rose-600 text-[10px] font-extrabold">LIVE</span>
+            </button>
+
+            <button type="button" onclick="window.switchMenu('schedule')" id="nav-btn-schedule" class="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition">
+              <span>📅</span>
+              <span>Jadwal Shift Mingguan</span>
+            </button>
+
+            <button type="button" onclick="window.switchMenu('employees')" id="nav-btn-employees" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition">
+              <span class="flex items-center gap-2.5">
+                <span>👥</span>
+                <span>Data 40 Staf & Posisi</span>
+              </span>
+              <span id="badge-count-emp" class="text-[11px] font-extrabold text-slate-400">40</span>
+            </button>
+
+            <button type="button" onclick="window.switchMenu('leave')" id="nav-btn-leave" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition">
+              <span class="flex items-center gap-2.5">
+                <span>🏥</span>
+                <span>Pengajuan Izin/Sakit</span>
+              </span>
+              <span id="badge-pending-leave" class="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 text-[10px] font-extrabold">2</span>
+            </button>
+
+            <button type="button" onclick="window.switchMenu('reports')" id="nav-btn-reports" class="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition">
+              <span>📈</span>
+              <span>Rekap Jam Kerja & Filter</span>
+            </button>
+          </nav>
+        </div>
+
+        <!-- Bagian Bawah Sidebar: Pengaturan Jam Kerja & Keluar/Masuk -->
+        <div class="pt-4 border-t border-slate-100 space-y-1.5">
+          <button type="button" onclick="window.openStorageModal()" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold text-emerald-700 bg-emerald-50/80 hover:bg-emerald-100 transition">
+            <span class="flex items-center gap-2">
+              <span>🧹</span>
+              <span>Memori DB Gratis</span>
+            </span>
+            <span id="sidebar-db-pct" class="text-[10px] font-extrabold text-emerald-600">0.1%</span>
+          </button>
+          <button type="button" onclick="window.openWorkHoursModal()" class="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition">
+            <span>⚙️</span>
+            <span>Pengaturan Jam & Posisi</span>
+          </button>
+          <button type="button" onclick="window.openLoginModal('STAFF')" class="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition">
+            <span>🚪</span>
+            <span>Ganti Akun / Keluar</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- KONTEN UTAMA (SCROLLABLE) -->
+      <main class="flex-1 overflow-y-auto p-4 md:p-6 pb-24 lg:pb-8">
+
+        <!-- HEADER ATAS KONTEN: PEMILIH STAF CEPAT & STATUS JAM KERJA -->
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-5 bg-white px-4 py-3 rounded-2xl border border-slate-200/80 shadow-sm">
+          <div class="flex items-center gap-3 flex-wrap">
+            <span class="text-xs font-bold text-slate-500">Fokus Profil Staf:</span>
+            <select id="global-emp-selector" onchange="window.changeFocusedEmployee(this.value)" class="px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-extrabold text-slate-800 focus:outline-none focus:border-[#0D8BFF]">
+              <!-- Diisi JS -->
+            </select>
+            <div class="flex items-center gap-1 bg-sky-50 px-2.5 py-1 rounded-xl border border-sky-100">
+              <span class="text-[11px] font-bold text-slate-500">Karakter 3D:</span>
+              <button type="button" onclick="window.switch3DCharacterStyle('female_bella')" class="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-white text-[#0D8BFF] shadow-sm hover:bg-sky-500 hover:text-white transition">Bella 3D</button>
+              <button type="button" onclick="window.switch3DCharacterStyle('female_hijab')" class="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-white text-emerald-600 shadow-sm hover:bg-emerald-500 hover:text-white transition">Siti (Hijab 3D)</button>
+              <button type="button" onclick="window.switch3DCharacterStyle('female_citra')" class="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-white text-rose-600 shadow-sm hover:bg-rose-500 hover:text-white transition">Citra 3D</button>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 text-xs">
+            <span id="header-shift-summary" class="px-3 py-1 rounded-xl bg-slate-100 text-slate-700 font-bold">
+              Shift 1: 07:00-15:00 • Shift 2: 15:00-23:00
+            </span>
+            <button type="button" onclick="window.switchMenu('facescan')" class="px-3 py-1.5 rounded-xl bg-[#0D8BFF] hover:bg-sky-600 text-white font-bold transition shadow-sm">
+              + Absen Wajah Sekarang
+            </button>
+          </div>
+        </div>
+
+        <!-- =============================================================== -->
+        <!-- MENU 1: DASHBOARD BENTO UTAMA (PERSIS REFERENSI STAFFCENTRAL)   -->
+        <!-- =============================================================== -->
+        <section id="view-overview" class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+          <!-- KOLOM KIRI (4 Kolom): Kartu Profil Wanita Animasi 3D + 4 Kartu Warna -->
+          <div class="lg:col-span-4 flex flex-col gap-5">
+            <!-- Kartu Profil Wanita Animasi 3D -->
+            <div class="bento-card p-5 flex flex-col justify-between">
+              <div>
+                <!-- Panggung Karakter Wanita 3D -->
+                <div class="relative rounded-2xl bg-gradient-to-b from-sky-100 via-indigo-50/60 to-slate-100 aspect-square flex flex-col items-center justify-center overflow-hidden border border-slate-200/70 mb-4">
+                  <!-- Badge Status Wajah & Shift di Atas -->
+                  <div class="absolute top-3 left-3 right-3 flex items-center justify-between z-10">
+                    <span id="profile-shift-pill" class="px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-md text-[11px] font-extrabold text-[#0D8BFF] shadow-sm">
+                      Shift 1 (Pagi)
+                    </span>
+                    <span class="px-2.5 py-1 rounded-full bg-emerald-500 text-white text-[10px] font-extrabold shadow-sm flex items-center gap-1">
+                      ✓ Wajah 3D Aktif
+                    </span>
+                  </div>
+
+                  <!-- Render SVG Wanita Animasi 3D -->
+                  <div id="bento-3d-stage" class="avatar-3d-float w-56 h-56 flex items-center justify-center select-none">
+                    <!-- Diisi oleh fungsi build3DFemaleAvatar -->
+                  </div>
+
+                  <!-- Tombol Interaksi Ekspresi 3D -->
+                  <div class="absolute bottom-12 left-3 right-3 flex items-center justify-center gap-1.5 z-10">
+                    <button type="button" onclick="window.set3DExpression('smile')" id="expr-btn-smile" class="px-2.5 py-1 rounded-xl bg-[#0D8BFF] text-white text-[10px] font-extrabold shadow-sm transition">
+                      😊 Senyum Ramah
+                    </button>
+                    <button type="button" onclick="window.set3DExpression('focus')" id="expr-btn-focus" class="px-2.5 py-1 rounded-xl bg-white/90 text-slate-700 text-[10px] font-bold shadow-sm hover:bg-white transition">
+                      🧐 Fokus Kerja
+                    </button>
+                    <button type="button" onclick="window.set3DExpression('wink')" id="expr-btn-wink" class="px-2.5 py-1 rounded-xl bg-white/90 text-slate-700 text-[10px] font-bold shadow-sm hover:bg-white transition">
+                      ✨ Scan Berhasil
+                    </button>
+                  </div>
+
+                  <!-- Bar Info GPS & PIN Login di Bawah Avatar -->
+                  <div class="absolute bottom-2.5 left-3 right-3 px-3 py-1.5 rounded-xl bg-white/95 backdrop-blur-md flex items-center justify-between text-[11px] font-bold text-slate-700 shadow-sm">
+                    <span id="profile-gps-text" class="text-emerald-600 truncate">📍 Di Kantor (14m)</span>
+                    <span id="profile-pin-text" class="font-mono text-[#0D8BFF]">PIN: 123456</span>
+                  </div>
+                </div>
+
+                <!-- Informasi Nama, Posisi Jabatan, Email & Tanggal Bergabung -->
+                <p class="text-xs text-slate-400 font-semibold">Nama Login Karyawan</p>
+                <h2 id="profile-name" class="text-2xl font-extrabold text-slate-900 tracking-tight mb-3">Bella Putri</h2>
+
+                <div class="space-y-2.5 text-xs">
+                  <div class="flex items-center justify-between py-1.5 border-b border-slate-100">
+                    <span class="text-slate-400 font-medium">Posisi / Jabatan</span>
+                    <span id="profile-position" class="font-extrabold text-slate-800">Desainer UI/UX Madya</span>
+                  </div>
+                  <div class="flex items-center justify-between py-1.5 border-b border-slate-100">
+                    <span class="text-slate-400 font-medium">Level & Departemen</span>
+                    <span id="profile-dept" class="font-bold text-[#0D8BFF]">Madya • Desain</span>
+                  </div>
+                  <div class="flex items-center justify-between py-1.5">
+                    <span class="text-slate-400 font-medium">Surel Kantor</span>
+                    <span id="profile-email" class="font-medium text-slate-600">bella.putri@perusahaan.id</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Footer Tanggal Bergabung & Tombol Aksi Bulat Biru -->
+              <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                <div>
+                  <p class="text-[11px] text-slate-400 font-medium">Bergabung sejak</p>
+                  <p id="profile-joined" class="text-xs font-extrabold text-slate-800">12 Sep 2022</p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button type="button" onclick="window.switchMenu('facescan')" title="Scan Wajah" class="w-9 h-9 rounded-full bg-[#0D8BFF] hover:bg-sky-600 text-white flex items-center justify-center shadow-md shadow-sky-500/25 transition text-sm">
+                    📸
+                  </button>
+                  <button type="button" onclick="window.openLoginModal('STAFF')" title="Uji Login Nama & PIN" class="w-9 h-9 rounded-full bg-[#0D8BFF] hover:bg-sky-600 text-white flex items-center justify-center shadow-md shadow-sky-500/25 transition text-sm">
+                    🔑
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4 Kartu Metrik Warna-Warni (Pink, Hijau, Biru, Oranye) -->
+            <div class="grid grid-cols-2 gap-4">
+              <!-- Pink Card -->
+              <div class="rounded-3xl p-4 bg-[#FF5E97] text-white shadow-md shadow-rose-500/15 flex flex-col justify-between min-h-[118px]">
+                <div class="flex items-baseline gap-1">
+                  <span id="metric-days-company" class="text-3xl font-extrabold tracking-tight">697</span>
+                  <span class="text-xs font-bold opacity-90">hari</span>
+                </div>
+                <div class="flex items-center gap-1.5 text-xs font-bold opacity-95 mt-3">
+                  <span>⏱️</span>
+                  <span>Masa Kerja Aktif</span>
+                </div>
+              </div>
+
+              <!-- Green Card -->
+              <div class="rounded-3xl p-4 bg-[#16C759] text-white shadow-md shadow-emerald-500/15 flex flex-col justify-between min-h-[118px]">
+                <div class="flex items-baseline gap-1">
+                  <span id="metric-completed-shifts" class="text-3xl font-extrabold tracking-tight">41</span>
+                  <span class="text-xs font-bold opacity-90">shift</span>
+                </div>
+                <div class="flex items-center gap-1.5 text-xs font-bold opacity-95 mt-3">
+                  <span>✅</span>
+                  <span>Hadir Tepat Waktu</span>
+                </div>
+              </div>
+
+              <!-- Blue Card -->
+              <div class="rounded-3xl p-4 bg-[#0D8BFF] text-white shadow-md shadow-sky-500/15 flex flex-col justify-between min-h-[118px]">
+                <div class="flex items-baseline gap-1">
+                  <span id="metric-active-shifts" class="text-3xl font-extrabold tracking-tight">2</span>
+                  <span class="text-xs font-bold opacity-90">shift/hari</span>
+                </div>
+                <div class="flex items-center gap-1.5 text-xs font-bold opacity-95 mt-3">
+                  <span>🔄</span>
+                  <span>Rotasi Mingguan</span>
+                </div>
+              </div>
+
+              <!-- Orange Card -->
+              <div class="rounded-3xl p-4 bg-[#FF5722] text-white shadow-md shadow-orange-500/15 flex flex-col justify-between min-h-[118px]">
+                <div class="flex items-baseline gap-1">
+                  <span id="metric-total-hours" class="text-2xl font-extrabold tracking-tight">168,5</span>
+                  <span class="text-xs font-bold opacity-90">jam</span>
+                </div>
+                <div class="flex items-center gap-1.5 text-xs font-bold opacity-95 mt-3">
+                  <span>⚡</span>
+                  <span>Akumulasi Jam Kerja</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- KOLOM TENGAH (4 Kolom): Gauge Mingguan + Live Time Tracking + Banner Promosi -->
+          <div class="lg:col-span-4 flex flex-col gap-5">
+
+            <!-- Semi-Circular Segmented Gauge (Aktivitas & Kehadiran Mingguan) -->
+            <div class="bento-card p-5">
+              <div class="flex flex-col items-center">
+                <!-- SVG Segmented Semi-Circle Gauge -->
+                <div class="relative w-60 h-36 flex items-end justify-center overflow-hidden">
+                  <svg viewBox="0 0 220 125" class="w-full h-full">
+                    <g id="gauge-segments-group"></g>
+                  </svg>
+                  <div class="absolute bottom-2 text-center">
+                    <p id="gauge-percent-text" class="text-3xl font-extrabold text-slate-900 leading-none">86%</p>
+                    <p class="text-xs text-slate-400 font-semibold mt-1">Kehadiran Mingguan</p>
+                  </div>
+                </div>
+
+                <!-- Rincian Aktivitas Shift & Posisi -->
+                <div class="w-full mt-4 space-y-2.5 pt-3 border-t border-slate-100 text-xs">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <span class="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-600 font-extrabold">S1</span>
+                      <span class="font-bold text-slate-700">Disiplin Shift 1 (Pagi)</span>
+                    </div>
+                    <span id="gauge-s1-rate" class="font-extrabold text-slate-900">72%</span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <span class="px-2 py-0.5 rounded-md bg-sky-50 text-[#0D8BFF] font-extrabold">S2</span>
+                      <span class="font-bold text-slate-700">Disiplin Shift 2 (Siang)</span>
+                    </div>
+                    <span id="gauge-s2-rate" class="font-extrabold text-slate-900">28%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Pelacakan Jam Kerja Real-Time (Time Tracking Widget) -->
+            <div class="bento-card p-5">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-extrabold text-slate-800">Pelacakan Jam Kerja</h3>
+                <span id="timer-status-badge" class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-extrabold">Sedang Bekerja</span>
+              </div>
+
+              <!-- Box Timer Utama -->
+              <div class="p-4 rounded-2xl bg-slate-100/90 flex items-center justify-between mb-4">
+                <div>
+                  <p id="timer-task-title" class="text-[11px] text-slate-400 font-semibold">Target Harian: 08:00:00</p>
+                  <p id="live-work-timer" class="text-3xl font-extrabold text-slate-900 font-mono tracking-tight mt-0.5">03:37:52</p>
+                </div>
+                <button type="button" onclick="window.toggleWorkTimer()" id="btn-toggle-timer" class="w-11 h-11 rounded-2xl bg-[#0D8BFF] hover:bg-sky-600 text-white flex items-center justify-center shadow-md shadow-sky-500/30 transition text-base font-bold">
+                  ⏸
+                </button>
+              </div>
+
+              <!-- Sub-item Log Jam Kerja Posisi -->
+              <div class="space-y-3 text-xs">
+                <div class="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition">
+                  <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-xl bg-sky-50 text-[#0D8BFF] flex items-center justify-center font-extrabold">⚡</div>
+                    <div>
+                      <p id="subtask-1-name" class="font-bold text-slate-800">Tugas Posisi Utama</p>
+                      <p class="text-[11px] text-slate-400 font-mono">02:15:20 • Shift Aktif</p>
+                    </div>
+                  </div>
+                  <span class="text-emerald-600 font-extrabold">Tercatat</span>
+                </div>
+
+                <div class="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition">
+                  <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-extrabold">📍</div>
+                    <div>
+                      <p class="font-bold text-slate-800">Verifikasi Lokasi & Biometrik</p>
+                      <p id="subtask-2-meta" class="text-[11px] text-slate-400 font-mono">01:22:32 • Radius Kantor OK</p>
+                    </div>
+                  </div>
+                  <span class="text-slate-400 font-bold">⋮</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Kartu Gradien Biru-Teal (Kelola 40 Staf & 2 Shift) -->
+            <div class="rounded-3xl p-5 bg-gradient-to-br from-[#0D8BFF] via-sky-500 to-teal-400 text-white shadow-lg flex flex-col justify-between min-h-[195px]">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center font-extrabold text-xs">S</span>
+                  <span class="text-xs font-extrabold">StaffCentral ID</span>
+                </div>
+                <span class="px-2.5 py-0.5 rounded-full bg-fuchsia-500 text-white text-[10px] font-extrabold uppercase tracking-wider">40 Karyawan</span>
+              </div>
+
+              <div class="my-3">
+                <h3 class="text-lg font-extrabold leading-snug">
+                  Pantau absensi wajah 3D, posisi jabatan & rotasi 2 shift otomatis
+                </h3>
+              </div>
+
+              <div class="flex items-center justify-between pt-2">
+                <div class="flex items-center -space-x-2">
+                  <span class="w-7 h-7 rounded-full bg-rose-200 text-slate-900 font-extrabold text-[11px] flex items-center justify-center ring-2 ring-white">B</span>
+                  <span class="w-7 h-7 rounded-full bg-emerald-200 text-slate-900 font-extrabold text-[11px] flex items-center justify-center ring-2 ring-white">S</span>
+                  <span class="w-7 h-7 rounded-full bg-amber-200 text-slate-900 font-extrabold text-[11px] flex items-center justify-center ring-2 ring-white">C</span>
+                  <span class="pl-4 text-xs font-bold text-white/95">40 Staf Aktif</span>
+                </div>
+                <button type="button" onclick="window.switchMenu('reports')" class="px-3 py-1.5 rounded-xl bg-white text-[#0D8BFF] text-xs font-extrabold shadow-sm hover:bg-sky-50 transition">
+                  Buka Rekap →
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- KOLOM KANAN (4 Kolom): Format Shift (Bar Hijau & Biru) + Kalender & Timeline Jadwal -->
+          <div class="lg:col-span-4 flex flex-col gap-5">
+
+            <!-- Komposisi Shift Kerja (2 Bar Vertikal Hijau & Biru sesuai Referensi) -->
+            <div class="bento-card p-5">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-extrabold text-slate-800">Pembagian Shift Kerja</h3>
+                <button type="button" onclick="window.switchMenu('schedule')" class="text-xs font-bold text-slate-400 hover:text-[#0D8BFF]">Rincian</button>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3.5 h-36 items-end">
+                <!-- Bar Hijau: Shift 1 Pagi -->
+                <div class="h-full flex flex-col justify-end">
+                  <div id="bar-shift-1" class="w-full rounded-2xl bg-[#16C759] text-white p-3.5 flex flex-col justify-end transition-all duration-300" style="height: 92%;">
+                    <p id="pct-shift-1" class="text-2xl font-extrabold leading-none">55%</p>
+                    <p id="lbl-shift-1" class="text-[11px] font-bold opacity-95 mt-1">Shift 1 (Pagi)</p>
+                  </div>
+                  <div class="h-1.5 w-full rounded-full bg-[#16C759] mt-1.5"></div>
+                </div>
+
+                <!-- Bar Biru: Shift 2 Siang -->
+                <div class="h-full flex flex-col justify-end">
+                  <div id="bar-shift-2" class="w-full rounded-2xl bg-[#0D8BFF] text-white p-3.5 flex flex-col justify-end transition-all duration-300" style="height: 82%;">
+                    <p id="pct-shift-2" class="text-2xl font-extrabold leading-none">45%</p>
+                    <p id="lbl-shift-2" class="text-[11px] font-bold opacity-95 mt-1">Shift 2 (Siang)</p>
+                  </div>
+                  <div class="h-1.5 w-full rounded-full bg-[#0D8BFF] mt-1.5"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Kalender Interaktif & Timeline Jadwal Shift Harian -->
+            <div class="bento-card p-5 flex-1 flex flex-col justify-between">
+              <div>
+                <!-- Header Bulan Kalender -->
+                <div class="flex items-center justify-between mb-4">
+                  <button type="button" onclick="window.changeCalendarDay(-1)" class="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-xs font-bold">‹</button>
+                  <h3 id="calendar-month-label" class="text-sm font-extrabold text-slate-900">November 2026</h3>
+                  <button type="button" onclick="window.changeCalendarDay(1)" class="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-xs font-bold">›</button>
+                </div>
+
+                <!-- Nama Hari (Sen - Min) -->
+                <div class="grid grid-cols-7 text-center text-[11px] font-bold text-slate-400 mb-2">
+                  <span>S</span><span>S</span><span>R</span><span>K</span><span class="text-slate-600">J</span><span class="text-rose-400">S</span><span class="text-rose-500">M</span>
+                </div>
+
+                <!-- Grid Tanggal Kalender -->
+                <div id="bento-calendar-grid" class="grid grid-cols-7 gap-y-1.5 text-center text-xs font-bold mb-5">
+                  <!-- Diisi JS -->
+                </div>
+              </div>
+
+              <!-- Daftar Timeline Jadwal Shift & Absensi Hari Ini -->
+              <div id="bento-schedule-timeline" class="space-y-3 pt-3 border-t border-slate-100">
+                <!-- Diisi JS -->
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- =============================================================== -->
+        <!-- MENU 5: PENGAJUAN SAKIT / IZIN / CUTI (LEAVE & SICK REQUEST)    -->
+        <!-- =============================================================== -->
+        <section id="view-leave" class="hidden space-y-5">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+            <!-- Form Buat Pengajuan Sakit / Izin / Cuti Baru -->
+            <div class="lg:col-span-5 bento-card p-6">
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <h2 class="text-lg font-extrabold text-slate-900">Form Pengajuan Sakit / Izin / Cuti</h2>
+                  <p class="text-xs text-slate-500">Dapat diisi oleh Karyawan yang sedang login maupun oleh Admin HR.</p>
+                </div>
+                <span class="w-10 h-10 rounded-2xl bg-rose-50 text-[#FF5E97] flex items-center justify-center text-lg font-extrabold">🏥</span>
+              </div>
+
+              <form onsubmit="window.submitLeaveRequest(event)" class="space-y-3.5 text-xs">
+                <div>
+                  <label class="block font-bold text-slate-700 mb-1">Pilih Nama Karyawan</label>
+                  <select id="leave-emp-select" required class="w-full px-3.5 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 font-extrabold text-slate-900 focus:outline-none focus:border-[#0D8BFF]">
+                    <!-- Diisi otomatis oleh JS -->
+                  </select>
+                </div>
+
+                <div>
+                  <label class="block font-bold text-slate-700 mb-1">Jenis Pengajuan</label>
+                  <select id="leave-type-select" required class="w-full px-3.5 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 font-extrabold text-slate-900 focus:outline-none focus:border-[#0D8BFF]">
+                    <option value="Sakit">🤒 Sakit (Dengan Istirahat / Surat Dokter)</option>
+                    <option value="Izin Keperluan">📋 Izin Keperluan Keluarga / Mendesak</option>
+                    <option value="Cuti Tahunan">🌴 Cuti Tahunan Resmi</option>
+                    <option value="Dinas Luar">🚗 Tugas / Dinas Luar Kantor</option>
+                  </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block font-bold text-slate-700 mb-1">Dari Tanggal</label>
+                    <input type="date" id="leave-date-start" required value="2026-11-05" class="w-full px-3 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 font-bold text-slate-800" />
+                  </div>
+                  <div>
+                    <label class="block font-bold text-slate-700 mb-1">Sampai Tanggal</label>
+                    <input type="date" id="leave-date-end" required value="2026-11-05" class="w-full px-3 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 font-bold text-slate-800" />
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block font-bold text-slate-700 mb-1">Keterangan / Alasan Lengkap</label>
+                  <textarea id="leave-reason-input" rows="3" required placeholder="Contoh: Demam tinggi, istirahat sesuai anjuran dokter klinik..." class="w-full px-3.5 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 font-semibold text-slate-800 focus:outline-none focus:border-[#0D8BFF]"></textarea>
+                </div>
+
+                <div>
+                  <label class="block font-bold text-slate-700 mb-1">Kontak Darurat / Nomor Surat Dokter (Opsional)</label>
+                  <input type="text" id="leave-attachment-input" placeholder="Contoh: 0812-3456-7890 / Surat Klinik Pratama #402" class="w-full px-3.5 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 font-semibold text-slate-800" />
+                </div>
+
+                <button type="submit" class="w-full py-3.5 px-4 rounded-2xl bg-[#0D8BFF] hover:bg-sky-600 text-white font-extrabold text-xs shadow-lg shadow-sky-500/25 transition flex items-center justify-center gap-2">
+                  <span>📨</span>
+                  <span>Kirim Pengajuan Sakit / Izin</span>
+                </button>
+              </form>
+            </div>
+
+            <!-- Daftar Pengajuan & Persetujuan Admin -->
+            <div class="lg:col-span-7 bento-card p-6 flex flex-col justify-between">
+              <div>
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                  <div>
+                    <h3 class="text-lg font-extrabold text-slate-900">Daftar Pengajuan Sakit, Izin & Cuti</h3>
+                    <p class="text-xs text-slate-500">Saat Admin klik <strong>Setujui</strong>, status otomatis masuk ke tabel Rekap Absensi.</p>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <select id="filter-leave-status" onchange="window.renderLeaveRequests()" class="px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-extrabold text-slate-700">
+                      <option value="ALL">Semua Status</option>
+                      <option value="Menunggu Persetujuan">Menunggu Persetujuan</option>
+                      <option value="Disetujui">Disetujui</option>
+                      <option value="Ditolak">Ditolak</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Ringkasan Cepat Pengajuan -->
+                <div class="grid grid-cols-3 gap-3 mb-4 text-xs">
+                  <div class="p-3 rounded-2xl bg-amber-50 border border-amber-100">
+                    <p class="text-[11px] font-bold text-amber-700">Menunggu Persetujuan</p>
+                    <p id="leave-count-pending" class="text-xl font-extrabold text-amber-600 mt-0.5">2</p>
+                  </div>
+                  <div class="p-3 rounded-2xl bg-emerald-50 border border-emerald-100">
+                    <p class="text-[11px] font-bold text-emerald-700">Disetujui (Masuk Rekap)</p>
+                    <p id="leave-count-approved" class="text-xl font-extrabold text-emerald-600 mt-0.5">1</p>
+                  </div>
+                  <div class="p-3 rounded-2xl bg-rose-50 border border-rose-100">
+                    <p class="text-[11px] font-bold text-rose-700">Ditolak</p>
+                    <p id="leave-count-rejected" class="text-xl font-extrabold text-rose-600 mt-0.5">0</p>
+                  </div>
+                </div>
+
+                <!-- List Kartu Pengajuan -->
+                <div id="leave-requests-list" class="space-y-3 max-h-[430px] overflow-y-auto pr-1">
+                  <!-- Diisi otomatis oleh JS -->
+                </div>
+              </div>
+
+              <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+                <span>💡 Tips: Hindari upload foto resolusi besar agar kuota gratis Supabase tetap hemat.</span>
+                <button type="button" onclick="window.switchMenu('reports')" class="text-[#0D8BFF] font-bold hover:underline">Lihat di Rekap →</button>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- =============================================================== -->
+        <!-- MENU 6: REKAP JAM KERJA (FILTER TANGGAL DARI S.D. SAMPAI)       -->
+        <!-- =============================================================== -->
+        <section id="view-reports" class="hidden space-y-5">
+          <!-- Bar Filter Rentang Tanggal -->
+          <div class="bento-card p-6">
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+              <div>
+                <h2 class="text-lg font-extrabold text-slate-900">Rekapitulasi Jam Kerja & Kehadiran Karyawan</h2>
+                <p class="text-xs text-slate-500">Filter laporan berdasarkan rentang tanggal (Dari Tanggal s.d. Sampai Tanggal), posisi jabatan, dan shift kerja.</p>
+              </div>
+              <div class="flex items-center flex-wrap gap-2">
+                <button type="button" onclick="window.openStorageModal()" class="px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-extrabold transition flex items-center gap-1.5">
+                  🧹 Kosongkan Transaksi Lama (Hemat DB)
+                </button>
+                <button type="button" onclick="window.exportReportCSV()" class="px-4 py-2 rounded-xl bg-[#16C759] hover:bg-emerald-600 text-white text-xs font-extrabold transition shadow-sm">
+                  📥 Unduh Rekap CSV / Excel
+                </button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-200/80 mb-5">
+              <div>
+                <label class="block text-[11px] font-bold text-slate-500 mb-1">Dari Tanggal</label>
+                <input type="date" id="filter-date-start" onchange="window.renderWorkHoursReport()" class="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-800" />
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-500 mb-1">Sampai Tanggal</label>
+                <input type="date" id="filter-date-end" onchange="window.renderWorkHoursReport()" class="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-800" />
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-500 mb-1">Filter Karyawan</label>
+                <select id="filter-report-emp" onchange="window.renderWorkHoursReport()" class="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-800">
+                  <option value="ALL">Semua Karyawan</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-500 mb-1">Filter Posisi Jabatan</label>
+                <select id="filter-report-pos" onchange="window.renderWorkHoursReport()" class="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-800">
+                  <option value="ALL">Semua Posisi</option>
+                </select>
+              </div>
+              <div class="flex items-end">
+                <button type="button" onclick="window.resetReportFilterDates()" class="w-full py-2 px-3 rounded-xl bg-[#0D8BFF] hover:bg-sky-600 text-white text-xs font-extrabold transition">
+                  Terapkan / Reset Bulan Ini
+                </button>
+              </div>
+            </div>
+
+            <!-- 4 Kartu Ringkasan Hasil Filter Tanggal -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+              <div class="p-4 rounded-2xl bg-sky-50 border border-sky-100">
+                <p class="text-[11px] font-bold text-slate-500">Total Kehadiran (Sesuai Filter)</p>
+                <p id="rep-summary-count" class="text-2xl font-extrabold text-[#0D8BFF] mt-1">0 Sesi</p>
+              </div>
+              <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-100">
+                <p class="text-[11px] font-bold text-slate-500">Total Jam Kerja (HH:MM:SS)</p>
+                <p id="rep-summary-hhmm" class="text-2xl font-extrabold text-emerald-600 font-mono mt-1">00:00:00</p>
+              </div>
+              <div class="p-4 rounded-2xl bg-amber-50 border border-amber-100">
+                <p class="text-[11px] font-bold text-slate-500">Rata-rata Jam Kerja / Hari</p>
+                <p id="rep-summary-avg" class="text-2xl font-extrabold text-amber-600 mt-1">0,0 Jam</p>
+              </div>
+              <div class="p-4 rounded-2xl bg-rose-50 border border-rose-100">
+                <p class="text-[11px] font-bold text-slate-500">Total Keterlambatan</p>
+                <p id="rep-summary-late" class="text-2xl font-extrabold text-rose-600 mt-1">0 Menit</p>
+              </div>
+            </div>
+
+            <!-- Tabel Rincian Log Absensi & Jam Kerja -->
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr class="border-b border-slate-200 text-slate-400 uppercase text-[11px]">
+                    <th class="py-3 px-3">Tanggal</th>
+                    <th class="py-3 px-3">Nama Karyawan</th>
+                    <th class="py-3 px-3">Posisi Jabatan</th>
+                    <th class="py-3 px-3">Shift</th>
+                    <th class="py-3 px-3">Jam Masuk</th>
+                    <th class="py-3 px-3">Jam Pulang</th>
+                    <th class="py-3 px-3">Jumlah Jam Kerja</th>
+                    <th class="py-3 px-3">Lokasi GPS</th>
+                    <th class="py-3 px-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="report-logs-tbody" class="divide-y divide-slate-100">
+                  <!-- Diisi JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      <!-- FLOATING BOTTOM NAVIGATION BAR (UNTUK MOBILE / TABLET) -->
+      <nav class="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-2 flex items-center justify-around text-[10px] font-bold">
+        <button type="button" onclick="window.switchMenu('overview')" class="flex flex-col items-center gap-0.5 text-[#0D8BFF]">
+          <span>📊</span><span>Bento</span>
+        </button>
+        <button type="button" onclick="window.switchMenu('facescan')" class="flex flex-col items-center gap-0.5 text-slate-600">
+          <span>📸</span><span>Scan 3D</span>
+        </button>
+        <button type="button" onclick="window.switchMenu('schedule')" class="flex flex-col items-center gap-0.5 text-slate-600">
+          <span>📅</span><span>2 Shift</span>
+        </button>
+        <button type="button" onclick="window.switchMenu('leave')" class="flex flex-col items-center gap-0.5 text-slate-600">
+          <span>🏥</span><span>Izin/Sakit</span>
+        </button>
+        <button type="button" onclick="window.switchMenu('employees')" class="flex flex-col items-center gap-0.5 text-slate-600">
+          <span>👥</span><span>40 Staf</span>
+        </button>
+        <button type="button" onclick="window.switchMenu('reports')" class="flex flex-col items-center gap-0.5 text-slate-600">
+          <span>📈</span><span>Rekap</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- MODAL 1: LOGIN HIBRIDA (KARYAWAN: NAMA SAJA + PIN | ADMIN HR)   -->
+    <!-- =============================================================== -->
+    <div id="modal-login" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 relative">
+        <button type="button" onclick="window.closeLoginModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm">✕</button>
+
+        <div class="flex items-center gap-2.5 mb-5">
+          <div class="w-10 h-10 rounded-2xl bg-[#0D8BFF] text-white flex items-center justify-center font-extrabold text-lg">S</div>
+          <div>
+            <h3 class="text-lg font-extrabold text-slate-900">Masuk ke StaffCentral ID</h3>
+            <p class="text-xs text-slate-400">Karyawan cukup ketik Nama & PIN • Admin via Email</p>
+          </div>
+        </div>
+
+        <!-- Pilihan Tab Login -->
+        <div class="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-2xl mb-5">
+          <button type="button" id="tab-btn-staff" onclick="window.switchLoginTab('STAFF')" class="py-2 text-xs font-extrabold rounded-xl bg-white text-slate-900 shadow-sm">
+            👩 Karyawan (Nama & PIN)
+          </button>
+          <button type="button" id="tab-btn-admin" onclick="window.switchLoginTab('ADMIN')" class="py-2 text-xs font-bold rounded-xl text-slate-500">
+            🛡️ Admin HR
+          </button>
+        </div>
+
+        <!-- Form Login Karyawan: HANYA NAMA & PIN -->
+        <form id="form-staff-login" onsubmit="window.handleStaffLogin(event)" class="space-y-4">
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-xs font-bold text-slate-700">Nama Karyawan</label>
+              <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">Tanpa NIK / Email</span>
+            </div>
+            <input type="text" id="login-staff-name" list="employee-names-datalist" required value="Bella Putri" placeholder="Ketik nama Anda (contoh: Bella Putri)" class="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-sm font-extrabold text-slate-900 focus:outline-none focus:border-[#16C759]" />
+            <datalist id="employee-names-datalist"></datalist>
+            <p class="text-[11px] text-slate-400 mt-1">Ketik atau pilih nama Anda dari daftar 40 karyawan.</p>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-xs font-bold text-slate-700">PIN Karyawan</label>
+              <button type="button" onclick="window.togglePinVisibility()" id="btn-show-pin" class="text-[11px] font-bold text-[#0D8BFF] hover:underline">Lihat PIN</button>
+            </div>
+            <input type="password" id="login-staff-pin" required value="123456" placeholder="Masukkan PIN (123456)" class="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-sm font-mono font-extrabold tracking-widest text-slate-900 focus:outline-none focus:border-[#16C759]" />
+          </div>
+
+          <button type="submit" class="w-full py-3.5 rounded-2xl bg-[#16C759] hover:bg-emerald-600 text-white font-extrabold text-xs shadow-lg shadow-emerald-500/25 transition">
+            ✓ Masuk sebagai Karyawan (Nama & PIN)
+          </button>
+        </form>
+
+        <!-- Form Login Admin HR -->
+        <form id="form-admin-login" onsubmit="window.handleAdminLogin(event)" class="space-y-4 hidden">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Email Admin (Supabase Auth)</label>
+            <input type="email" id="login-admin-email" required value="admin@perusahaan.id" class="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-sm font-bold text-slate-900" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Kata Sandi Admin</label>
+            <input type="password" id="login-admin-pass" required value="admin123" class="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-sm font-bold text-slate-900" />
+          </div>
+          <button type="submit" class="w-full py-3.5 rounded-2xl bg-[#0D8BFF] hover:bg-sky-600 text-white font-extrabold text-xs shadow-lg shadow-sky-500/25 transition">
+            🛡️ Masuk Panel Admin HR
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- MODAL 2: PENGATURAN JAM KERJA (SHIFT 1 & 2), POSISI & RADIUS GPS-->
+    <!-- =============================================================== -->
+    <div id="modal-work-hours" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+      <div class="w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 relative my-8">
+        <button type="button" onclick="window.closeWorkHoursModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm">✕</button>
+
+        <h3 class="text-lg font-extrabold text-slate-900 mb-1">Pengaturan Jam Kerja 2 Shift, Posisi & Lokasi GPS</h3>
+        <p class="text-xs text-slate-500 mb-5">Perubahan jam kerja di bawah ini langsung diterapkan ke perhitungan keterlambatan dan durasi jam kerja seluruh 40 karyawan.</p>
+
+        <form onsubmit="window.saveWorkHoursSettings(event)" class="space-y-4 text-xs">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Pengaturan Shift 1 -->
+            <div class="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-3">
+              <p class="font-extrabold text-emerald-800 text-sm">☀️ Pengaturan Shift 1 (Pagi)</p>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block font-bold text-slate-600 mb-1">Jam Masuk Shift 1</label>
+                  <input type="time" id="set-s1-in" value="07:00" required class="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 font-bold" />
+                </div>
+                <div>
+                  <label class="block font-bold text-slate-600 mb-1">Jam Pulang Shift 1</label>
+                  <input type="time" id="set-s1-out" value="15:00" required class="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 font-bold" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Pengaturan Shift 2 -->
+            <div class="p-4 rounded-2xl bg-sky-50/70 border border-sky-200 space-y-3">
+              <p class="font-extrabold text-sky-800 text-sm">🌙 Pengaturan Shift 2 (Siang/Sore)</p>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block font-bold text-slate-600 mb-1">Jam Masuk Shift 2</label>
+                  <input type="time" id="set-s2-in" value="15:00" required class="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 font-bold" />
+                </div>
+                <div>
+                  <label class="block font-bold text-slate-600 mb-1">Jam Pulang Shift 2</label>
+                  <input type="time" id="set-s2-out" value="23:00" required class="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 font-bold" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">Toleransi Terlambat (Menit)</label>
+              <input type="number" id="set-late-tolerance" value="15" min="0" max="120" class="w-full px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 font-bold" />
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">Target Jam Kerja / Hari</label>
+              <input type="number" id="set-target-daily" value="8" min="1" max="16" class="w-full px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 font-bold" />
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">Radius GPS Kantor Maksimal (Meter)</label>
+              <input type="number" id="set-max-radius" value="100" min="10" max="5000" class="w-full px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 font-bold" />
+            </div>
+          </div>
+
+          <!-- Tambah Master Posisi Jabatan Baru -->
+          <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+            <label class="block font-extrabold text-slate-700 mb-2">Daftar Posisi / Jabatan Tersedia</label>
+            <div id="positions-tags-list" class="flex flex-wrap gap-1.5 mb-3"></div>
+            <div class="flex gap-2">
+              <input type="text" id="new-position-input" placeholder="Ketik posisi baru (misal: Koordinator Gudang)" class="flex-1 px-3 py-2 rounded-xl bg-white border border-slate-200 font-semibold" />
+              <button type="button" onclick="window.addNewMasterPosition()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold">
+                + Tambah Posisi
+              </button>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-2">
+            <button type="button" onclick="window.closeWorkHoursModal()" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold">Batal</button>
+            <button type="submit" class="px-5 py-2.5 rounded-xl bg-[#0D8BFF] hover:bg-sky-600 text-white font-extrabold shadow-md">
+              💾 Simpan Pengaturan Jam & Posisi
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- MODAL 3: TAMBAH / EDIT KARYAWAN (NAMA LOGIN, PIN & POSISI)      -->
+    <!-- =============================================================== -->
+    <div id="modal-employee" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 relative">
+        <button type="button" onclick="window.closeEmployeeModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm">✕</button>
+
+        <h3 class="text-lg font-extrabold text-slate-900 mb-1">Tambah / Ubah Data Karyawan</h3>
+        <p class="text-xs text-slate-500 mb-4">Karyawan cukup menggunakan Nama Lengkap dan PIN di bawah ini untuk login.</p>
+
+        <form onsubmit="window.saveEmployeeForm(event)" class="space-y-3.5 text-xs">
+          <input type="hidden" id="form-emp-id" />
+          <div class="grid grid-cols-3 gap-3">
+            <div class="col-span-2">
+              <label class="block font-bold text-slate-700 mb-1">Nama Lengkap Karyawan (Untuk Login)</label>
+              <input type="text" id="form-emp-name" required placeholder="Contoh: Nadia Kusuma" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 font-extrabold text-slate-900" />
+            </div>
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">PIN Login</label>
+              <input type="text" id="form-emp-pin" required value="123456" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 font-mono font-extrabold text-[#0D8BFF]" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Posisi / Jabatan</label>
+              <select id="form-emp-position" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 font-bold text-slate-800"></select>
+            </div>
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Level Posisi</label>
+              <select id="form-emp-level" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 font-bold text-slate-800">
+                <option value="Junior">Junior</option>
+                <option value="Madya" selected>Madya (Middle)</option>
+                <option value="Senior">Senior</option>
+                <option value="Supervisor">Supervisor / Lead</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Departemen</label>
+              <select id="form-emp-dept" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 font-bold text-slate-800">
+                <option value="Pengembangan IT">Pengembangan IT</option>
+                <option value="Desain">Desain</option>
+                <option value="SDM & HR">SDM & HR</option>
+                <option value="Manajemen">Manajemen</option>
+                <option value="Operasional">Operasional</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Shift Utama</label>
+              <select id="form-emp-shift" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 font-bold text-slate-800">
+                <option value="SHIFT_1">Shift 1 (Pagi)</option>
+                <option value="SHIFT_2">Shift 2 (Siang)</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Gaya Karakter Wanita Animasi 3D</label>
+            <select id="form-emp-avatar" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 font-bold text-slate-800">
+              <option value="female_bella">Bella Putri 3D (Rambut Cokelat Modern)</option>
+              <option value="female_hijab">Siti Rahma 3D (Hijab Biru Lembut)</option>
+              <option value="female_citra">Citra Kirana 3D (Rambut Bob Eksekutif)</option>
+            </select>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-3">
+            <button type="button" onclick="window.closeEmployeeModal()" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold">Batal</button>
+            <button type="submit" class="px-5 py-2.5 rounded-xl bg-[#16C759] hover:bg-emerald-600 text-white font-extrabold shadow-md">
+              ✓ Simpan Data Karyawan
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- MODAL 3B: MANAJER PENYIMPANAN SUPABASE GRATIS & HAPUS TRANSAKSI -->
+    <!-- =============================================================== -->
+    <div id="modal-storage" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+      <div class="w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 relative my-8">
+        <button type="button" onclick="window.closeStorageModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm">✕</button>
+
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-11 h-11 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl font-extrabold">🧹</div>
+          <div>
+            <h3 class="text-lg font-extrabold text-slate-900">Manajer Memori Supabase Gratis & Kosongkan Transaksi</h3>
+            <p class="text-xs text-slate-500">Jaga penyimpanan database Supabase Free Tier (500 MB) tetap lega & aman dengan backup CSV otomatis.</p>
+          </div>
+        </div>
+
+        <!-- Indikator Pemakaian Memori Real-Time -->
+        <div class="p-4 rounded-2xl bg-slate-900 text-white mb-4">
+          <div class="flex items-center justify-between text-xs mb-2">
+            <span class="font-bold text-slate-300">Estimasi Pemakaian Database Teks (Kuota Gratis: 500 MB)</span>
+            <span id="storage-usage-text" class="font-mono font-extrabold text-emerald-400">0.04 MB / 500 MB (0.01%)</span>
+          </div>
+          <div class="w-full h-3 rounded-full bg-slate-800 overflow-hidden mb-3">
+            <div id="storage-usage-bar" class="h-full bg-gradient-to-r from-emerald-400 to-[#0D8BFF] rounded-full transition-all duration-300" style="width: 2%;"></div>
+          </div>
+          <div class="grid grid-cols-3 gap-2 text-[11px] text-slate-300 pt-2 border-t border-slate-800">
+            <div>👥 Master Staf: <strong id="storage-count-emp" class="text-white">40 baris</strong> (Aman)</div>
+            <div>📸 Log Absensi: <strong id="storage-count-att" class="text-emerald-300">0 baris</strong></div>
+            <div>🏥 Log Izin/Sakit: <strong id="storage-count-leave" class="text-amber-300">0 baris</strong></div>
+          </div>
+        </div>
+
+        <!-- Penjelasan Teknis Kuota Supabase Gratis -->
+        <div class="p-3.5 rounded-2xl bg-sky-50 border border-sky-200/80 text-xs text-slate-700 mb-4 space-y-1">
+          <p class="font-extrabold text-sky-900">💡 Mengapa Database Teks Anda Sangat Aman?</p>
+          <p class="leading-relaxed">
+            Untuk <strong>40 karyawan</strong>, menyimpan teks absensi & izin selama <strong>10 tahun penuh</strong> hanya memakan sekitar <strong>~15 MB</strong> (kurang dari 3% kuota gratis 500 MB). Namun, fitur <strong>Kosongkan Transaksi</strong> di bawah ini sangat berguna untuk membersihkan log tahunan/bulanan setelah Anda mengunduh rekap Excel/CSV.
+          </p>
+        </div>
+
+        <!-- Form Kosongkan Transaksi (Safe Purge) -->
+        <form onsubmit="window.executeStoragePurge(event)" class="space-y-3.5 text-xs">
+          <div>
+            <label class="block font-extrabold text-slate-700 mb-1">1. Pilih Mode Pembersihan Transaksi</label>
+            <select id="purge-mode-select" onchange="window.togglePurgeDateRange()" class="w-full px-3.5 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 font-extrabold text-slate-900">
+              <option value="OLDER_3M">Hapus Transaksi > 3 Bulan Lalu (Simpan 3 Bulan Terakhir)</option>
+              <option value="OLDER_6M">Hapus Transaksi > 6 Bulan Lalu (Simpan 6 Bulan Terakhir)</option>
+              <option value="CUSTOM_RANGE">Hapus Berdasarkan Rentang Tanggal Pilihan</option>
+              <option value="ALL_LOGS">Kosongkan Semua Log Absensi & Izin (Reset Transaksi ke 0)</option>
+            </select>
+          </div>
+
+          <!-- Input Rentang Tanggal Khusus (Muncul jika pilih CUSTOM_RANGE) -->
+          <div id="purge-custom-dates" class="hidden grid grid-cols-2 gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-200">
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">Hapus Dari Tanggal</label>
+              <input type="date" id="purge-date-start" value="2026-01-01" class="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 font-bold" />
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">Sampai Tanggal</label>
+              <input type="date" id="purge-date-end" value="2026-10-31" class="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 font-bold" />
+            </div>
+          </div>
+
+          <!-- Opsi Target Tabel & Auto-Backup CSV -->
+          <div class="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-2">
+            <label class="flex items-center gap-2.5 font-extrabold text-emerald-900 cursor-pointer">
+              <input type="checkbox" id="purge-auto-backup" checked class="w-4 h-4 rounded text-emerald-600" />
+              <span>📥 Unduh Backup CSV Otomatis Sebelum Menghapus (Sangat Direkomendasikan)</span>
+            </label>
+            <p class="text-[11px] text-emerald-700 pl-6">
+              Sistem otomatis mengunduh file CSV berisi seluruh log absensi & pengajuan izin ke komputer Anda sebelum mengosongkan database. Data 40 karyawan & jadwal shift <strong>TIDAK</strong> akan terhapus.
+            </p>
+          </div>
+
+          <!-- Konfirmasi Keamanan -->
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">
+              2. Ketik kata <span class="px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 font-mono font-extrabold">HAPUS</span> untuk konfirmasi keamanan:
+            </label>
+            <input type="text" id="purge-confirm-input" required placeholder="Ketik HAPUS di sini..." class="w-full px-3.5 py-2.5 rounded-2xl bg-slate-50 border border-rose-300 font-mono font-extrabold text-rose-700 uppercase focus:outline-none focus:border-rose-500" />
+          </div>
+
+          <div class="flex justify-end gap-2 pt-2">
+            <button type="button" onclick="window.closeStorageModal()" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold">Batal</button>
+            <button type="submit" class="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold shadow-lg shadow-rose-500/25 transition">
+              🗑️ Backup CSV & Kosongkan Transaksi Sekarang
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- MODAL 4: SQL SUPABASE & PANDUAN INTEGRASI                       -->
+    <!-- =============================================================== -->
+    <div id="modal-sql" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 relative">
+        <button type="button" onclick="window.closeSqlModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm">✕</button>
+        <h3 class="text-lg font-extrabold text-slate-900 mb-1">Skema SQL PostgreSQL Supabase (Lengkap + Tabel Izin & Purge)</h3>
+        <p class="text-xs text-slate-500 mb-3">Salin dan jalankan perintah SQL ini di menu <strong>SQL Editor</strong> pada proyek Supabase Anda.</p>
+
+        <pre id="sql-code-block" class="p-4 rounded-2xl bg-slate-900 text-emerald-300 text-[11px] font-mono overflow-x-auto max-h-80 leading-relaxed">-- 1. Tabel Master Posisi & Pengaturan Jam Kerja
+CREATE TABLE IF NOT EXISTS master_posisi (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  nama_posisi VARCHAR(120) NOT NULL,
+  departemen VARCHAR(100) NOT NULL,
+  target_jam_mingguan INT DEFAULT 40
+);
+
+-- 2. Tabel Master 40 Karyawan (Login Nama + PIN)
+CREATE TABLE IF NOT EXISTS karyawan (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  nik VARCHAR(40) UNIQUE,
+  nama VARCHAR(150) NOT NULL,
+  pin_password VARCHAR(30) DEFAULT '123456',
+  posisi VARCHAR(120) NOT NULL,
+  level_posisi VARCHAR(50) DEFAULT 'Madya',
+  departemen VARCHAR(100) NOT NULL,
+  email VARCHAR(150),
+  tanggal_bergabung DATE DEFAULT CURRENT_DATE,
+  shift_default VARCHAR(20) DEFAULT 'SHIFT_1',
+  avatar_style VARCHAR(40) DEFAULT 'female_bella',
+  face_descriptor JSONB,
+  jadwal_mingguan JSONB,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 3. Tabel Log Absensi Wajah, Jam Kerja & Lokasi GPS
+CREATE TABLE IF NOT EXISTS absensi (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  karyawan_id UUID REFERENCES karyawan(id) ON DELETE CASCADE,
+  nama_karyawan VARCHAR(150),
+  posisi_karyawan VARCHAR(120),
+  tanggal DATE DEFAULT CURRENT_DATE,
+  shift_kode VARCHAR(20) DEFAULT 'SHIFT_1',
+  waktu_masuk TIMESTAMPTZ,
+  waktu_pulang TIMESTAMPTZ,
+  durasi_menit INT DEFAULT 0,
+  durasi_teks VARCHAR(20) DEFAULT '08:00:00',
+  menit_terlambat INT DEFAULT 0,
+  jarak_meter INT DEFAULT 12,
+  status_lokasi VARCHAR(50) DEFAULT 'Di Kantor (Valid)',
+  status_kehadiran VARCHAR(40) DEFAULT 'Tepat Waktu',
+  skor_wajah NUMERIC(5,2) DEFAULT 98.50,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 4. Tabel Pengajuan Sakit / Izin / Cuti Karyawan
+CREATE TABLE IF NOT EXISTS pengajuan_izin (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  karyawan_id UUID REFERENCES karyawan(id) ON DELETE CASCADE,
+  nama_karyawan VARCHAR(150) NOT NULL,
+  posisi_karyawan VARCHAR(120),
+  jenis_pengajuan VARCHAR(50) NOT NULL, -- 'Sakit', 'Izin Keperluan', 'Cuti Tahunan', 'Dinas Luar'
+  tanggal_mulai DATE NOT NULL,
+  tanggal_selesai DATE NOT NULL,
+  alasan TEXT NOT NULL,
+  kontak_lampiran VARCHAR(150),
+  status_persetujuan VARCHAR(40) DEFAULT 'Menunggu Persetujuan', -- 'Menunggu Persetujuan', 'Disetujui', 'Ditolak'
+  approved_by VARCHAR(100),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 5. Contoh Query Kosongkan Transaksi Lama (> 6 Bulan) Agar Memori Gratis Tetap Lega
+-- DELETE FROM absensi WHERE tanggal < (CURRENT_DATE - INTERVAL '6 months');
+-- DELETE FROM pengajuan_izin WHERE tanggal_mulai < (CURRENT_DATE - INTERVAL '6 months');</pre>
+
+        <div class="flex justify-end gap-2 mt-4">
+          <button type="button" onclick="window.copySqlText()" class="px-4 py-2 rounded-xl bg-[#0D8BFF] text-white text-xs font-extrabold">📋 Salin Kode SQL</button>
+          <button type="button" onclick="window.closeSqlModal()" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold">Tutup</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOAST NOTIFIKASI -->
+    <div id="toast-box" class="hidden fixed bottom-5 right-5 z-50 px-4 py-3 rounded-2xl bg-slate-900 text-white text-xs font-extrabold shadow-xl border border-slate-700 flex items-center gap-2">
+      <span id="toast-text">Notifikasi</span>
+    </div>
+
+  </div>
+
+  <!-- SCRIPT UTAMA VANILLA JS (100% AMAN TANPA BLOCKING MODULE) -->
+  <script>
+    (function () {
+      // 1. Konfigurasi Mode Preview & Supabase
+      var IS_PREVIEW = true;
+      var SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';
+      var SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+      var supabaseClient = null;
+
+      try {
+        if (!IS_PREVIEW && window.supabase && window.supabase.createClient) {
+          supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        }
+      } catch (err) {
+        console.warn('Mode Preview Aktif:', err);
+      }
+
+      // 2. State Pengaturan Jam Kerja, 2 Shift, Radius GPS & Master Posisi
+      var workSettings = {
+        s1In: '07:00',
+        s1Out: '15:00',
+        s2In: '15:00',
+        s2Out: '23:00',
+        lateToleranceMinutes: 15,
+        targetDailyHours: 8,
+        maxRadiusMeters: 100
+      };
+
+      var masterPositions = [
+        'Desainer UI/UX Madya',
+        'Pengembang Fullstack',
+        'Spesialis SDM & Absensi',
+        'Supervisor Shift Operasional',
+        'Analis Kualitas Sistem',
+        'Koordinator Logistik & Gudang',
+        'Kasir & Frontliner Senior',
+        'Manajer Proyek IT'
+      ];
+
+      var deptColors = {
+        'Pengembangan IT': '#16C759',
+        'Desain': '#0D8BFF',
+        'SDM & HR': '#FF5E97',
+        'Manajemen': '#F59E0B',
+        'Operasional': '#8B5CF6'
+      };
+
+      // 3. Data Awal Karyawan (Dapat Diperluas hingga 40 Karyawan dengan 1 Klik)
+      var employeesList = [
+        {
+          id: 'emp-1',
+          nik: 'EMP-001',
+          nama: 'Bella Putri',
+          pin_password: '123456',
+          posisi: 'Desainer UI/UX Madya',
+          level_posisi: 'Madya',
+          departemen: 'Desain',
+          email: 'bella.putri@perusahaan.id',
+          tanggal_bergabung: '2022-09-12',
+          shift_default: 'SHIFT_1',
+          avatar_style: 'female_bella',
+          gps_distance: 14,
+          jadwal: ['SHIFT_1', 'SHIFT_1', 'SHIFT_1', 'SHIFT_2', 'SHIFT_2', 'SHIFT_1', 'LIBUR']
+        },
+        {
+          id: 'emp-2',
+          nik: 'EMP-002',
+          nama: 'Siti Rahma',
+          pin_password: '123456',
+          posisi: 'Spesialis SDM & Absensi',
+          level_posisi: 'Senior',
+          departemen: 'SDM & HR',
+          email: 'siti.rahma@perusahaan.id',
+          tanggal_bergabung: '2023-01-18',
+          shift_default: 'SHIFT_1',
+          avatar_style: 'female_hijab',
+          gps_distance: 19,
+          jadwal: ['SHIFT_1', 'SHIFT_1', 'SHIFT_1', 'SHIFT_1', 'SHIFT_1', 'LIBUR', 'LIBUR']
+        },
+        {
+          id: 'emp-3',
+          nik: 'EMP-003',
+          nama: 'Citra Lestari',
+          pin_password: '123456',
+          posisi: 'Pengembang Fullstack',
+          level_posisi: 'Senior',
+          departemen: 'Pengembangan IT',
+          email: 'citra.lestari@perusahaan.id',
+          tanggal_bergabung: '2022-11-04',
+          shift_default: 'SHIFT_2',
+          avatar_style: 'female_citra',
+          gps_distance: 22,
+          jadwal: ['SHIFT_2', 'SHIFT_2', 'SHIFT_2', 'SHIFT_1', 'SHIFT_1', 'SHIFT_2', 'LIBUR']
+        },
+        {
+          id: 'emp-4',
+          nik: 'EMP-004',
+          nama: 'Nadia Kusuma',
+          pin_password: '123456',
+          posisi: 'Supervisor Shift Operasional',
+          level_posisi: 'Supervisor',
+          departemen: 'Operasional',
+          email: 'nadia.k@perusahaan.id',
+          tanggal_bergabung: '2023-04-10',
+          shift_default: 'SHIFT_2',
+          avatar_style: 'female_bella',
+          gps_distance: 11,
+          jadwal: ['SHIFT_2', 'SHIFT_2', 'SHIFT_1', 'SHIFT_1', 'SHIFT_2', 'SHIFT_2', 'LIBUR']
+        },
+        {
+          id: 'emp-5',
+          nik: 'EMP-005',
+          nama: 'Rina Wulandari',
+          pin_password: '123456',
+          posisi: 'Manajer Proyek IT',
+          level_posisi: 'Supervisor',
+          departemen: 'Manajemen',
+          email: 'rina.w@perusahaan.id',
+          tanggal_bergabung: '2021-08-22',
+          shift_default: 'SHIFT_1',
+          avatar_style: 'female_hijab',
+          gps_distance: 16,
+          jadwal: ['SHIFT_1', 'SHIFT_1', 'SHIFT_2', 'SHIFT_2', 'SHIFT_1', 'LIBUR', 'LIBUR']
+        },
+        {
+          id: 'emp-6',
+          nik: 'EMP-006',
+          nama: 'Ayu Pratiwi',
+          pin_password: '123456',
+          posisi: 'Koordinator Logistik & Gudang',
+          level_posisi: 'Madya',
+          departemen: 'Operasional',
+          email: 'ayu.p@perusahaan.id',
+          tanggal_bergabung: '2023-07-01',
+          shift_default: 'SHIFT_2',
+          avatar_style: 'female_citra',
+          gps_distance: 28,
+          jadwal: ['SHIFT_2', 'SHIFT_1', 'SHIFT_1', 'SHIFT_2', 'SHIFT_2', 'SHIFT_1', 'LIBUR']
+        },
+        {
+          id: 'emp-7',
+          nik: 'EMP-007',
+          nama: 'Dewi Anggraini',
+          pin_password: '123456',
+          posisi: 'Analis Kualitas Sistem',
+          level_posisi: 'Junior',
+          departemen: 'Pengembangan IT',
+          email: 'dewi.a@perusahaan.id',
+          tanggal_bergabung: '2024-02-14',
+          shift_default: 'SHIFT_1',
+          avatar_style: 'female_bella',
+          gps_distance: 15,
+          jadwal: ['SHIFT_1', 'SHIFT_1', 'SHIFT_1', 'SHIFT_1', 'SHIFT_2', 'SHIFT_2', 'LIBUR']
+        },
+        {
+          id: 'emp-8',
+          nik: 'EMP-008',
+          nama: 'Farah Nabila',
+          pin_password: '123456',
+          posisi: 'Kasir & Frontliner Senior',
+          level_posisi: 'Senior',
+          departemen: 'Operasional',
+          email: 'farah.n@perusahaan.id',
+          tanggal_bergabung: '2023-05-19',
+          shift_default: 'SHIFT_2',
+          avatar_style: 'female_hijab',
+          gps_distance: 18,
+          jadwal: ['SHIFT_2', 'SHIFT_2', 'SHIFT_2', 'SHIFT_1', 'SHIFT_1', 'SHIFT_2', 'LIBUR']
+        }
+      ];
+
+      // Melengkapi hingga 40 karyawan secara otomatis saat inisialisasi agar kuota 40 langsung terlihat
+      var extraNames = [
+        'Intan Permata', 'Kartika Sari', 'Larasati Putri', 'Maya Indriani', 'Nisa Amelia',
+        'Olivia Wijaya', 'Putri Maharani', 'Qori Handayani', 'Ratna Komala', 'Shinta Bella',
+        'Tiara Andini', 'Ulfa Rahmawati', 'Vina Panduwinata', 'Winda Septiani', 'Yuni Shara',
+        'Zahra Aulia', 'Amira Hakim', 'Bunga Lestari', 'Clarissa Tania', 'Dinda Kirana',
+        'Elsa Safitri', 'Fanny Rahmasari', 'Gita Gutawa', 'Hana Saraswati', 'Indah Permatasari',
+        'Jessica Mila', 'Karina Suwandi', 'Lulu Tobing', 'Maudy Ayunda', 'Nabila Syakieb',
+        'Olla Ramlan', 'Prilly Latuconsina'
+      ];
+      var deptKeys = ['Pengembangan IT', 'Desain', 'SDM & HR', 'Manajemen', 'Operasional'];
+      var avatarStyles = ['female_bella', 'female_hijab', 'female_citra'];
+
+      for (var i = 0; i < extraNames.length; i++) {
+        var idx = employeesList.length + 1;
+        var shiftDef = idx % 2 === 0 ? 'SHIFT_2' : 'SHIFT_1';
+        employeesList.push({
+          id: 'emp-' + idx,
+          nik: 'EMP-' + String(idx).padStart(3, '0'),
+          nama: extraNames[i],
+          pin_password: '123456',
+          posisi: masterPositions[idx % masterPositions.length],
+          level_posisi: idx % 3 === 0 ? 'Senior' : (idx % 2 === 0 ? 'Madya' : 'Junior'),
+          departemen: deptKeys[idx % deptKeys.length],
+          email: extraNames[i].toLowerCase().replace(/\s+/g, '.') + '@perusahaan.id',
+          tanggal_bergabung: '2023-06-15',
+          shift_default: shiftDef,
+          avatar_style: avatarStyles[idx % avatarStyles.length],
+          gps_distance: 10 + (idx % 25),
+          jadwal: shiftDef === 'SHIFT_1'
+            ? ['SHIFT_1', 'SHIFT_1', 'SHIFT_1', 'SHIFT_2', 'SHIFT_2', 'SHIFT_1', 'LIBUR']
+            : ['SHIFT_2', 'SHIFT_2', 'SHIFT_1', 'SHIFT_1', 'SHIFT_2', 'SHIFT_2', 'LIBUR']
+        });
+      }
+
+      // 4. Data Log Absensi & Jam Kerja Awal (Rentang Tanggal untuk Filter)
+      var attendanceLogs = [
+        {
+          id: 'log-1',
+          karyawan_id: 'emp-1',
+          nama_karyawan: 'Bella Putri',
+          posisi_karyawan: 'Desainer UI/UX Madya',
+          tanggal: '2026-11-05',
+          shift_kode: 'SHIFT_1',
+          jam_masuk: '06:56',
+          jam_pulang: '15:12',
+          durasi_menit: 496,
+          durasi_teks: '08:16:00',
+          menit_terlambat: 0,
+          jarak_meter: 14,
+          status_lokasi: 'Di Kantor (14m)',
+          status_kehadiran: 'Tepat Waktu',
+          skor_wajah: 99.1
+        },
+        {
+          id: 'log-2',
+          karyawan_id: 'emp-2',
+          nama_karyawan: 'Siti Rahma',
+          posisi_karyawan: 'Spesialis SDM & Absensi',
+          tanggal: '2026-11-05',
+          shift_kode: 'SHIFT_1',
+          jam_masuk: '07:04',
+          jam_pulang: '15:05',
+          durasi_menit: 481,
+          durasi_teks: '08:01:00',
+          menit_terlambat: 0,
+          jarak_meter: 19,
+          status_lokasi: 'Di Kantor (19m)',
+          status_kehadiran: 'Tepat Waktu',
+          skor_wajah: 98.7
+        },
+        {
+          id: 'log-3',
+          karyawan_id: 'emp-3',
+          nama_karyawan: 'Citra Lestari',
+          posisi_karyawan: 'Pengembang Fullstack',
+          tanggal: '2026-11-04',
+          shift_kode: 'SHIFT_2',
+          jam_masuk: '15:22',
+          jam_pulang: '23:10',
+          durasi_menit: 468,
+          durasi_teks: '07:48:00',
+          menit_terlambat: 22,
+          jarak_meter: 22,
+          status_lokasi: 'Di Kantor (22m)',
+          status_kehadiran: 'Terlambat (22m)',
+          skor_wajah: 97.9
+        },
+        {
+          id: 'log-4',
+          karyawan_id: 'emp-1',
+          nama_karyawan: 'Bella Putri',
+          posisi_karyawan: 'Desainer UI/UX Madya',
+          tanggal: '2026-11-03',
+          shift_kode: 'SHIFT_1',
+          jam_masuk: '06:58',
+          jam_pulang: '15:20',
+          durasi_menit: 502,
+          durasi_teks: '08:22:00',
+          menit_terlambat: 0,
+          jarak_meter: 12,
+          status_lokasi: 'Di Kantor (12m)',
+          status_kehadiran: 'Tepat Waktu',
+          skor_wajah: 99.4
+        },
+        {
+          id: 'log-5',
+          karyawan_id: 'emp-4',
+          nama_karyawan: 'Nadia Kusuma',
+          posisi_karyawan: 'Supervisor Shift Operasional',
+          tanggal: '2026-11-02',
+          shift_kode: 'SHIFT_2',
+          jam_masuk: '14:55',
+          jam_pulang: '23:05',
+          durasi_menit: 490,
+          durasi_teks: '08:10:00',
+          menit_terlambat: 0,
+          jarak_meter: 11,
+          status_lokasi: 'Di Kantor (11m)',
+          status_kehadiran: 'Tepat Waktu',
+          skor_wajah: 98.5
+        }
+      ];
+
+      // 4B. Data Awal Pengajuan Sakit / Izin / Cuti
+      var leaveRequests = [
+        {
+          id: 'leave-1',
+          karyawan_id: 'emp-2',
+          nama_karyawan: 'Siti Rahma',
+          posisi_karyawan: 'Spesialis SDM & Absensi',
+          jenis_pengajuan: 'Sakit',
+          tanggal_mulai: '2026-11-05',
+          tanggal_selesai: '2026-11-06',
+          alasan: 'Demam dan flu berat, disarankan istirahat 2 hari sesuai surat keterangan dokter klinik.',
+          kontak_lampiran: 'Surat Dokter Klinik Kimia Farma #SKD-882',
+          status_persetujuan: 'Menunggu Persetujuan',
+          created_at: '05 Nov 2026, 06:30'
+        },
+        {
+          id: 'leave-2',
+          karyawan_id: 'emp-6',
+          nama_karyawan: 'Ayu Pratiwi',
+          posisi_karyawan: 'Koordinator Logistik & Gudang',
+          jenis_pengajuan: 'Izin Keperluan',
+          tanggal_mulai: '2026-11-05',
+          tanggal_selesai: '2026-11-05',
+          alasan: 'Mengurus perpanjangan dokumen administrasi keluarga di kantor kecamatan pagi hari.',
+          kontak_lampiran: '0813-2299-1029',
+          status_persetujuan: 'Menunggu Persetujuan',
+          created_at: '05 Nov 2026, 06:45'
+        },
+        {
+          id: 'leave-3',
+          karyawan_id: 'emp-5',
+          nama_karyawan: 'Rina Wulandari',
+          posisi_karyawan: 'Manajer Proyek IT',
+          jenis_pengajuan: 'Dinas Luar',
+          tanggal_mulai: '2026-11-03',
+          tanggal_selesai: '2026-11-03',
+          alasan: 'Rapat koordinasi implementasi server klien di Jakarta Selatan.',
+          kontak_lampiran: 'Surat Tugas #ST-192',
+          status_persetujuan: 'Disetujui',
+          created_at: '03 Nov 2026, 07:00'
+        }
+      ];
+
+      // State Aktif
+      var currentSession = { role: 'ADMIN', name: 'Admin HR (Akses Penuh)', empId: null };
+      var focusedEmpId = 'emp-1';
+      var current3DExpression = 'smile';
+      var timerSeconds = 3 * 3600 + 37 * 60 + 52; // 03:37:52 sesuai gambar referensi
+      var timerRunning = true;
+      var selectedCalendarDay = 12;
+      var activeWebcamStream = null;
+
+      // 5. Generator SVG Karakter Wanita Animasi 3D Bergaya Pixar/Stylized 3D
+      function build3DFemaleAvatar(style, expression) {
+        var isHijab = style === 'female_hijab';
+        var isCitra = style === 'female_citra';
+
+        // Bentuk Mulut Berdasarkan Ekspresi
+        var mouthPath = '<path d="M 86 128 Q 100 140 114 128" stroke="#E11D48" stroke-width="4" stroke-linecap="round" fill="none" />';
+        if (expression === 'focus') {
+          mouthPath = '<rect x="91" y="129" width="18" height="4.5" rx="2.2" fill="#BE123C" />';
+        } else if (expression === 'wink') {
+          mouthPath = '<path d="M 84 126 Q 100 144 116 126 Z" fill="#E11D48" /><path d="M 88 128 Q 100 133 112 128" stroke="#FFFFFF" stroke-width="2.5" fill="none" />';
+        }
+
+        // Rambut atau Hijab 3D dengan Gradasi Pencahayaan
+        var hairBack = '';
+        var hairFront = '';
+
+        if (isHijab) {
+          hairBack = '<path d="M 42 95 C 40 42, 160 42, 158 95 C 162 145, 148 176, 100 178 C 52 176, 38 145, 42 95 Z" fill="url(#hijabGrad)" />';
+          hairFront = '<path d="M 52 82 C 65 48, 135 48, 148 82 C 142 64, 58 64, 52 82 Z" fill="#0284C7" opacity="0.55" />' +
+                      '<path d="M 46 135 Q 100 168 154 135 L 162 185 L 38 185 Z" fill="url(#hijabGrad)" />';
+        } else if (isCitra) {
+          hairBack = '<path d="M 44 92 C 40 34, 160 34, 156 92 C 160 128, 148 148, 136 152 L 64 152 C 52 148, 40 128, 44 92 Z" fill="url(#hairDarkGrad)" />';
+          hairFront = '<path d="M 54 78 C 68 46, 128 48, 146 82 C 122 62, 82 60, 54 78 Z" fill="url(#hairDarkGrad)" />';
+        } else {
+          // Bella 3D (Rambut Cokelat Keemasan Bergelombang)
+          hairBack = '<path d="M 38 98 C 34 32, 166 32, 162 98 C 168 142, 152 172, 138 176 L 62 176 C 48 172, 32 142, 38 98 Z" fill="url(#hairWarmGrad)" />';
+          hairFront = '<path d="M 52 80 C 65 44, 136 44, 148 84 C 126 60, 80 58, 52 80 Z" fill="url(#hairWarmGrad)" />';
+        }
+
+        var blazerColor = isHijab ? 'url(#blazerTeal)' : (isCitra ? 'url(#blazerRose)' : 'url(#blazerBlue)');
+
+        return '' +
+          '<svg viewBox="0 0 200 200" class="w-full h-full drop-shadow-md">' +
+            '<defs>' +
+              '<radialGradient id="skin3d" cx="45%" cy="38%" r="58%">' +
+                '<stop offset="0%" stop-color="#FFE4D6" />' +
+                '<stop offset="65%" stop-color="#F7C5AD" />' +
+                '<stop offset="100%" stop-color="#E5A287" />' +
+              '</radialGradient>' +
+              '<linearGradient id="hairWarmGrad" x1="0%" y1="0%" x2="100%" y2="100%">' +
+                '<stop offset="0%" stop-color="#6D3B24" />' +
+                '<stop offset="50%" stop-color="#4A2511" />' +
+                '<stop offset="100%" stop-color="#2B1306" />' +
+              '</linearGradient>' +
+              '<linearGradient id="hairDarkGrad" x1="0%" y1="0%" x2="100%" y2="100%">' +
+                '<stop offset="0%" stop-color="#334155" />' +
+                '<stop offset="100%" stop-color="#0F172A" />' +
+              '</linearGradient>' +
+              '<linearGradient id="hijabGrad" x1="0%" y1="0%" x2="100%" y2="100%">' +
+                '<stop offset="0%" stop-color="#38BDF8" />' +
+                '<stop offset="100%" stop-color="#0284C7" />' +
+              '</linearGradient>' +
+              '<linearGradient id="blazerBlue" x1="0%" y1="0%" x2="100%" y2="100%">' +
+                '<stop offset="0%" stop-color="#0D8BFF" />' +
+                '<stop offset="100%" stop-color="#1D4ED8" />' +
+              '</linearGradient>' +
+              '<linearGradient id="blazerTeal" x1="0%" y1="0%" x2="100%" y2="100%">' +
+                '<stop offset="0%" stop-color="#10B981" />' +
+                '<stop offset="100%" stop-color="#047857" />' +
+              '</linearGradient>' +
+              '<linearGradient id="blazerRose" x1="0%" y1="0%" x2="100%" y2="100%">' +
+                '<stop offset="0%" stop-color="#F43F5E" />' +
+                '<stop offset="100%" stop-color="#BE123C" />' +
+              '</linearGradient>' +
+            '</defs>' +
+            hairBack +
+            '<!-- Leher & Bahu 3D -->' +
+            '<rect x="86" y="136" width="28" height="28" rx="12" fill="url(#skin3d)" />' +
+            '<path d="M 38 192 C 42 154, 72 150, 100 150 C 128 150, 158 154, 162 192 Z" fill="' + blazerColor + '" />' +
+            '<path d="M 84 150 L 100 174 L 116 150 Z" fill="#FFFFFF" />' +
+            '<!-- Wajah 3D dengan Subsurface Lighting -->' +
+            '<rect x="56" y="52" width="88" height="96" rx="43" fill="url(#skin3d)" />' +
+            '<!-- Rona Pipi 3D -->' +
+            '<ellipse cx="72" cy="114" rx="9" ry="5" fill="#FB7185" opacity="0.35" />' +
+            '<ellipse cx="128" cy="114" rx="9" ry="5" fill="#FB7185" opacity="0.35" />' +
+            '<!-- Alis -->' +
+            '<path d="M 69 86 Q 79 81 89 85" stroke="#4A2511" stroke-width="3.2" stroke-linecap="round" fill="none" />' +
+            '<path d="M 111 85 Q 121 81 131 86" stroke="#4A2511" stroke-width="3.2" stroke-linecap="round" fill="none" />' +
+            '<!-- Mata 3D Berkedip -->' +
+            '<g class="avatar-eye-blink">' +
+              '<ellipse cx="79" cy="98" rx="7.5" ry="8" fill="#FFFFFF" />' +
+              '<circle cx="79" cy="98" r="5" fill="#1E293B" />' +
+              '<circle cx="81" cy="95.5" r="2" fill="#FFFFFF" />' +
+              '<ellipse cx="121" cy="98" rx="7.5" ry="8" fill="#FFFFFF" />' +
+              '<circle cx="121" cy="98" r="5" fill="#1E293B" />' +
+              '<circle cx="123" cy="95.5" r="2" fill="#FFFFFF" />' +
+            '</g>' +
+            '<!-- Hidung 3D Lembut -->' +
+            '<path d="M 100 97 L 97 112 Q 100 115 104 112" stroke="#D98A6C" stroke-width="2.5" stroke-linecap="round" fill="none" />' +
+            '<!-- Ekspresi Mulut -->' +
+            mouthPath +
+            hairFront +
+          '</svg>';
+      }
+
+      // 6. Fungsi Notifikasi Toast
+      function showToast(msg) {
+        var box = document.getElementById('toast-box');
+        var txt = document.getElementById('toast-text');
+        if (!box || !txt) return;
+        txt.textContent = msg;
+        box.classList.remove('hidden');
+        clearTimeout(window._toastTimer);
+        window._toastTimer = setTimeout(function () {
+          box.classList.add('hidden');
+        }, 3200);
+      }
+
+      // 7. Render Segmented Semi-Circular Gauge (Persis Gambar Referensi)
+      function renderSegmentedGauge(percent) {
+        var group = document.getElementById('gauge-segments-group');
+        if (!group) return;
+        var totalSegments = 20;
+        var activeSegments = Math.round((percent / 100) * totalSegments);
+        var cx = 110;
+        var cy = 110;
+        var r = 82;
+        var html = '';
+
+        for (var i = 0; i < totalSegments; i++) {
+          var angleDeg = 180 - (i / (totalSegments - 1)) * 180;
+          var rad = (angleDeg * Math.PI) / 180;
+          var x1 = cx + (r - 12) * Math.cos(rad);
+          var y1 = cy - (r - 12) * Math.sin(rad);
+          var x2 = cx + (r + 6) * Math.cos(rad);
+          var y2 = cy - (r + 6) * Math.sin(rad);
+          var color = i < activeSegments ? '#16C759' : '#E2E8F0';
+          html += '<line x1="' + x1.toFixed(1) + '" y1="' + y1.toFixed(1) + '" x2="' + x2.toFixed(1) + '" y2="' + y2.toFixed(1) + '" stroke="' + color + '" stroke-width="6.5" stroke-linecap="round" />';
+        }
+        group.innerHTML = html;
+        var pctEl = document.getElementById('gauge-percent-text');
+        if (pctEl) pctEl.textContent = percent + '%';
+      }
+
+      // 8. Render Kalender Bento & Jadwal Harian
+      function renderCalendarAndTimeline() {
+        var grid = document.getElementById('bento-calendar-grid');
+        if (grid) {
+          var prevDays = [27, 28, 29, 30];
+          var html = '';
+          for (var p = 0; p < prevDays.length; p++) {
+            html += '<span class="py-1.5 text-slate-300">' + prevDays[p] + '</span>';
+          }
+          for (var d = 1; d <= 30; d++) {
+            var isSelected = d === selectedCalendarDay;
+            var isWeekend = (d + 4) % 7 === 6 || (d + 4) % 7 === 0;
+            var cls = isSelected
+              ? 'w-7 h-7 mx-auto rounded-full bg-[#0D8BFF] text-white flex items-center justify-center shadow-sm cursor-pointer'
+              : 'py-1.5 cursor-pointer hover:bg-slate-100 rounded-full ' + (isWeekend ? 'text-rose-500' : 'text-slate-700');
+            html += '<div onclick="window.selectCalDate(' + d + ')" class="' + cls + '">' + d + '</div>';
+          }
+          grid.innerHTML = html;
+        }
+
+        var timeline = document.getElementById('bento-schedule-timeline');
+        if (timeline) {
+          var items = [
+            { date: selectedCalendarDay + ' Nov', time: workSettings.s1In, role: 'Shift 1 (Pagi)', title: 'Scan Wajah Masuk & Briefing', border: 'border-amber-400', badge: 'bg-sky-500' },
+            { date: selectedCalendarDay + ' Nov', time: '13:30', role: 'Evaluasi Posisi', title: 'Pemeriksaan Target Jam Kerja', border: 'border-[#0D8BFF]', badge: 'bg-indigo-500' },
+            { date: selectedCalendarDay + ' Nov', time: workSettings.s2In, role: 'Shift 2 (Siang)', title: 'Pergantian Regu Shift 2', border: 'border-rose-500', badge: 'bg-emerald-500' },
+            { date: selectedCalendarDay + ' Nov', time: workSettings.s1Out, role: 'Rekapitulasi HR', title: 'Verifikasi Radius GPS & Pulang', border: 'border-emerald-500', badge: 'bg-amber-500' }
+          ];
+          timeline.innerHTML = items.map(function (it) {
+            return '' +
+              '<div class="flex items-center justify-between text-xs">' +
+                '<div class="flex items-center gap-3">' +
+                  '<div class="w-12 text-left">' +
+                    '<p class="text-[10px] text-slate-400 font-semibold">' + it.date + '</p>' +
+                    '<p class="font-extrabold text-slate-800">' + it.time + '</p>' +
+                  '</div>' +
+                  '<div class="pl-3 border-l-4 ' + it.border + '">' +
+                    '<p class="text-[10px] text-slate-400 font-semibold">' + it.role + '</p>' +
+                    '<p class="font-extrabold text-slate-800">' + it.title + '</p>' +
+                  '</div>' +
+                '</div>' +
+                '<span class="w-6 h-6 rounded-lg ' + it.badge + ' text-white flex items-center justify-center text-[10px] font-bold">📹</span>' +
+              '</div>';
+          }).join('');
+        }
+      }
+
+      // 9. Render Seluruh Komponen Dashboard Bento & Semua Tabel
+      function renderAll() {
+        var emp = employeesList.find(function (e) { return e.id === focusedEmpId; }) || employeesList[0];
+
+        // Update Dropdown Pemilih Karyawan & Datalist Login Nama
+        var globalSel = document.getElementById('global-emp-selector');
+        var scanSel = document.getElementById('scanner-emp-select');
+        var repEmpSel = document.getElementById('filter-report-emp');
+        var datalist = document.getElementById('employee-names-datalist');
+
+        var optionsHtml = employeesList.map(function (e) {
+          var sel = e.id === emp.id ? 'selected' : '';
+          return '<option value="' + e.id + '" ' + sel + '>' + e.nama + ' — ' + e.posisi + '</option>';
+        }).join('');
+
+        if (globalSel) globalSel.innerHTML = optionsHtml;
+        if (scanSel) scanSel.innerHTML = optionsHtml;
+        if (datalist) {
+          datalist.innerHTML = employeesList.map(function (e) {
+            return '<option value="' + e.nama + '">' + e.posisi + ' (' + e.departemen + ')</option>';
+          }).join('');
+        }
+        if (repEmpSel && repEmpSel.options.length <= 1) {
+          repEmpSel.innerHTML = '<option value="ALL">Semua Karyawan (40 Staf)</option>' + employeesList.map(function (e) {
+            return '<option value="' + e.id + '">' + e.nama + '</option>';
+          }).join('');
+        }
+
+        // Update Sidebar Counter per Departemen
+        var deptCounts = {};
+        employeesList.forEach(function (e) {
+          deptCounts[e.departemen] = (deptCounts[e.departemen] || 0) + 1;
+        });
+        var deptBox = document.getElementById('sidebar-dept-counters');
+        if (deptBox) {
+          deptBox.innerHTML = Object.keys(deptColors).map(function (dName) {
+            var count = deptCounts[dName] || 0;
+            var dotColor = deptColors[dName];
+            return '' +
+              '<div onclick="window.filterByDepartmentSidebar(\'' + dName + '\')" class="flex items-center justify-between py-1 px-2 rounded-xl hover:bg-slate-100 cursor-pointer transition">' +
+                '<span class="flex items-center gap-2 text-slate-600 font-semibold">' +
+                  '<span class="w-2 h-2 rounded-full" style="background-color:' + dotColor + '"></span>' +
+                  '<span>' + dName + '</span>' +
+                '</span>' +
+                '<span class="text-slate-400 font-bold">' + count + '</span>' +
+              '</div>';
+          }).join('');
+        }
+
+        var totalMem = document.getElementById('sidebar-total-members');
+        var badgeEmp = document.getElementById('badge-count-emp');
+        if (totalMem) totalMem.textContent = employeesList.length + ' anggota terdaftar';
+        if (badgeEmp) badgeEmp.textContent = employeesList.length;
+
+        // Render Avatar 3D di Bento & Scanner
+        var avatarSvg = build3DFemaleAvatar(emp.avatar_style || 'female_bella', current3DExpression);
+        var bentoStage = document.getElementById('bento-3d-stage');
+        var scannerStage = document.getElementById('scanner-3d-stage');
+        if (bentoStage) bentoStage.innerHTML = avatarSvg;
+        if (scannerStage) scannerStage.innerHTML = avatarSvg;
+
+        // Isi Detail Kartu Profil Bento
+        document.getElementById('profile-name').textContent = emp.nama;
+        document.getElementById('profile-position').textContent = emp.posisi;
+        document.getElementById('profile-dept').textContent = (emp.level_posisi || 'Madya') + ' • ' + emp.departemen;
+        document.getElementById('profile-email').textContent = emp.email;
+        document.getElementById('profile-pin-text').textContent = 'PIN: ' + emp.pin_password;
+        document.getElementById('profile-gps-text').textContent = '📍 Di Kantor (' + (emp.gps_distance || 14) + 'm)';
+        document.getElementById('profile-shift-pill').textContent = emp.shift_default === 'SHIFT_1'
+          ? 'Shift 1 (' + workSettings.s1In + '-' + workSettings.s1Out + ')'
+          : 'Shift 2 (' + workSettings.s2In + '-' + workSettings.s2Out + ')';
+
+        document.getElementById('subtask-1-name').textContent = emp.posisi;
+        document.getElementById('scan-overlay-name').textContent = 'Target: ' + emp.nama + ' (' + emp.posisi + ')';
+
+        // Hitung Proporsi Shift 1 vs Shift 2 dari 40 Karyawan
+        var s1Count = employeesList.filter(function (e) { return e.shift_default === 'SHIFT_1'; }).length;
+        var s2Count = employeesList.length - s1Count;
+        var s1Pct = Math.round((s1Count / employeesList.length) * 100) || 50;
+        var s2Pct = 100 - s1Pct;
+
+        document.getElementById('pct-shift-1').textContent = s1Pct + '%';
+        document.getElementById('pct-shift-2').textContent = s2Pct + '%';
+        document.getElementById('lbl-shift-1').textContent = 'Shift 1 (' + s1Count + ' Staf)';
+        document.getElementById('lbl-shift-2').textContent = 'Shift 2 (' + s2Count + ' Staf)';
+
+        document.getElementById('header-shift-summary').textContent =
+          'Shift 1: ' + workSettings.s1In + '-' + workSettings.s1Out + ' • Shift 2: ' + workSettings.s2In + '-' + workSettings.s2Out;
+
+        renderSegmentedGauge(86);
+        renderCalendarAndTimeline();
+        renderLiveScanLogs();
+        renderWeeklyScheduleTable();
+        window.renderEmployeesTable();
+        window.renderLeaveRequests();
+        window.renderWorkHoursReport();
+        renderMasterPositionsList();
+        updateStorageMetricsUI();
+      }
+
+      // 10. Render Log Scan Wajah Hari Ini
+      function renderLiveScanLogs() {
+        var box = document.getElementById('live-scan-log-list');
+        var counter = document.getElementById('today-scan-counter');
+        if (counter) counter.textContent = attendanceLogs.length + ' Log Tercatat';
+        if (!box) return;
+
+        box.innerHTML = attendanceLogs.slice(0, 10).map(function (log) {
+          var isLate = log.menit_terlambat > 0;
+          var badgeCls = isLate ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200';
+          return '' +
+            '<div class="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-2 text-xs">' +
+              '<div>' +
+                '<p class="font-extrabold text-slate-900">' + log.nama_karyawan + ' <span class="text-[10px] font-bold text-[#0D8BFF]">(' + log.posisi_karyawan + ')</span></p>' +
+                '<p class="text-[11px] text-slate-500 mt-0.5">' +
+                  log.tanggal + ' • Masuk: <strong>' + log.jam_masuk + '</strong> • Pulang: <strong>' + log.jam_pulang + '</strong> • Durasi: <strong class="font-mono text-slate-800">' + log.durasi_teks + '</strong>' +
+                '</p>' +
+                '<p class="text-[10px] text-slate-400 mt-0.5">📍 ' + log.status_lokasi + ' • Kemiripan Wajah: ' + log.skor_wajah + '%</p>' +
+              '</div>' +
+              '<span class="px-2.5 py-1 rounded-xl border text-[10px] font-extrabold shrink-0 ' + badgeCls + '">' + log.status_kehadiran + '</span>' +
+            '</div>';
+        }).join('');
+      }
+
+      // 11. Render Tabel Jadwal Shift Mingguan (2 Shift)
+      function renderWeeklyScheduleTable() {
+        var tbody = document.getElementById('weekly-schedule-tbody');
+        if (!tbody) return;
+
+        tbody.innerHTML = employeesList.map(function (emp, empIdx) {
+          var daysHtml = emp.jadwal.map(function (shiftCode, dayIdx) {
+            var cls = 'bg-slate-100 text-slate-500';
+            var label = 'Libur';
+            if (shiftCode === 'SHIFT_1') {
+              cls = 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+              label = 'Shift 1';
+            } else if (shiftCode === 'SHIFT_2') {
+              cls = 'bg-sky-50 text-[#0D8BFF] border border-sky-200';
+              label = 'Shift 2';
+            }
+            return '' +
+              '<td class="py-2.5 px-1.5 text-center">' +
+                '<button type="button" onclick="window.cycleEmployeeDayShift(' + empIdx + ',' + dayIdx + ')" class="px-2.5 py-1 rounded-xl text-[11px] font-extrabold transition hover:scale-105 ' + cls + '">' +
+                  label +
+                '</button>' +
+              '</td>';
+          }).join('');
+
+          var activeDays = emp.jadwal.filter(function (s) { return s !== 'LIBUR'; }).length;
+          var weeklyHours = activeDays * workSettings.targetDailyHours;
+
+          return '' +
+            '<tr class="hover:bg-slate-50/80">' +
+              '<td class="py-2.5 px-3 font-extrabold text-slate-900">' + emp.nama + '</td>' +
+              '<td class="py-2.5 px-3 text-slate-600 font-semibold">' + emp.posisi + '</td>' +
+              daysHtml +
+              '<td class="py-2.5 px-3 text-right font-mono font-extrabold text-slate-800">' + weeklyHours + ' Jam</td>' +
+            '</tr>';
+        }).join('');
+      }
+
+      // 12. Render Tabel Master 40 Karyawan
+      window.renderEmployeesTable = function () {
+        var tbody = document.getElementById('employees-tbody');
+        if (!tbody) return;
+        var q = (document.getElementById('emp-search-input')?.value || '').toLowerCase();
+        var dept = document.getElementById('emp-dept-filter')?.value || 'ALL';
+        var shift = document.getElementById('emp-shift-filter')?.value || 'ALL';
+
+        var filtered = employeesList.filter(function (e) {
+          var matchQ = e.nama.toLowerCase().includes(q) || e.posisi.toLowerCase().includes(q);
+          var matchD = dept === 'ALL' || e.departemen === dept;
+          var matchS = shift === 'ALL' || e.shift_default === shift;
+          return matchQ && matchD && matchS;
+        });
+
+        tbody.innerHTML = filtered.map(function (e) {
+          var shiftBadge = e.shift_default === 'SHIFT_1'
+            ? '<span class="px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-700 font-extrabold text-[11px]">Shift 1 (Pagi)</span>'
+            : '<span class="px-2.5 py-1 rounded-xl bg-sky-50 text-[#0D8BFF] font-extrabold text-[11px]">Shift 2 (Siang)</span>';
+
+          return '' +
+            '<tr class="hover:bg-slate-50">' +
+              '<td class="py-3 px-3">' +
+                '<div class="flex items-center gap-2.5">' +
+                  '<div class="w-9 h-9 rounded-xl bg-sky-50 border border-sky-100 overflow-hidden shrink-0">' +
+                    build3DFemaleAvatar(e.avatar_style || 'female_bella', 'smile') +
+                  '</div>' +
+                  '<div>' +
+                    '<p class="font-extrabold text-slate-900">' + e.nama + '</p>' +
+                    '<p class="text-[10px] text-emerald-600 font-bold">Login Nama: "' + e.nama + '"</p>' +
+                  '</div>' +
+                '</div>' +
+              '</td>' +
+              '<td class="py-3 px-3">' +
+                '<span class="px-2.5 py-1 rounded-lg bg-slate-100 font-mono font-extrabold text-[#0D8BFF]">PIN: ' + e.pin_password + '</span>' +
+              '</td>' +
+              '<td class="py-3 px-3">' +
+                '<p class="font-extrabold text-slate-800">' + e.posisi + '</p>' +
+                '<span class="text-[10px] text-slate-400 font-bold">Level: ' + (e.level_posisi || 'Madya') + '</span>' +
+              '</td>' +
+              '<td class="py-3 px-3 font-semibold text-slate-700">' + e.departemen + '</td>' +
+              '<td class="py-3 px-3">' + shiftBadge + '</td>' +
+              '<td class="py-3 px-3"><span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-extrabold">✓ Terdaftar 3D</span></td>' +
+              '<td class="py-3 px-3 text-right space-x-1">' +
+                '<button type="button" onclick="window.editEmployee(\'' + e.id + '\')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">Ubah</button>' +
+                '<button type="button" onclick="window.quickScanEmployee(\'' + e.id + '\')" class="px-2.5 py-1 rounded-lg bg-[#0D8BFF] text-white font-bold">Scan</button>' +
+              '</td>' +
+            '</tr>';
+        }).join('');
+      };
+
+      // 13. Render Rekapitulasi Jam Kerja dengan Filter Rentang Tanggal (Dari s.d. Sampai)
+      window.renderWorkHoursReport = function () {
+        var startInput = document.getElementById('filter-date-start');
+        var endInput = document.getElementById('filter-date-end');
+        if (startInput && !startInput.value) startInput.value = '2026-11-01';
+        if (endInput && !endInput.value) endInput.value = '2026-11-30';
+
+        var startDate = startInput ? startInput.value : '2026-11-01';
+        var endDate = endInput ? endInput.value : '2026-11-30';
+        var empFilter = document.getElementById('filter-report-emp')?.value || 'ALL';
+        var posFilter = document.getElementById('filter-report-pos')?.value || 'ALL';
+
+        var filteredLogs = attendanceLogs.filter(function (l) {
+          var inDate = (!startDate || l.tanggal >= startDate) && (!endDate || l.tanggal <= endDate);
+          var inEmp = empFilter === 'ALL' || l.karyawan_id === empFilter;
+          var inPos = posFilter === 'ALL' || l.posisi_karyawan === posFilter;
+          return inDate && inEmp && inPos;
+        });
+
+        var totalMinutes = 0;
+        var totalLate = 0;
+        filteredLogs.forEach(function (l) {
+          totalMinutes += Number(l.durasi_menit || 0);
+          totalLate += Number(l.menit_terlambat || 0);
+        });
+
+        var hrs = Math.floor(totalMinutes / 60);
+        var mins = totalMinutes % 60;
+        var hhmmStr = String(hrs).padStart(2, '0') + ':' + String(mins).padStart(2, '0') + ':00';
+        var avgHours = filteredLogs.length > 0 ? ((totalMinutes / 60) / filteredLogs.length).toFixed(1) : '0.0';
+
+        document.getElementById('rep-summary-count').textContent = filteredLogs.length + ' Sesi Hadir';
+        document.getElementById('rep-summary-hhmm').textContent = hhmmStr;
+        document.getElementById('rep-summary-avg').textContent = avgHours.replace('.', ',') + ' Jam';
+        document.getElementById('rep-summary-late').textContent = totalLate + ' Menit';
+
+        var tbody = document.getElementById('report-logs-tbody');
+        if (!tbody) return;
+
+        if (filteredLogs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="9" class="py-6 text-center text-slate-400 font-bold">Tidak ada data absensi pada rentang tanggal tersebut.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = filteredLogs.map(function (l) {
+          var badge = '<span class="px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-700 font-extrabold">' + l.status_kehadiran + '</span>';
+          if (l.menit_terlambat > 0) {
+            badge = '<span class="px-2 py-0.5 rounded-lg bg-amber-50 text-amber-700 font-extrabold">Terlambat (' + l.menit_terlambat + 'm)</span>';
+          } else if (l.status_kehadiran.indexOf('Sakit') !== -1 || l.status_kehadiran.indexOf('Izin') !== -1 || l.status_kehadiran.indexOf('Cuti') !== -1) {
+            badge = '<span class="px-2 py-0.5 rounded-lg bg-rose-50 text-rose-700 font-extrabold">' + l.status_kehadiran + '</span>';
+          }
+
+          return '' +
+            '<tr class="hover:bg-slate-50">' +
+              '<td class="py-3 px-3 font-mono font-bold text-slate-700">' + l.tanggal + '</td>' +
+              '<td class="py-3 px-3 font-extrabold text-slate-900">' + l.nama_karyawan + '</td>' +
+              '<td class="py-3 px-3 font-semibold text-slate-600">' + l.posisi_karyawan + '</td>' +
+              '<td class="py-3 px-3 font-bold text-[#0D8BFF]">' + (l.shift_kode === 'SHIFT_1' ? 'Shift 1 (Pagi)' : (l.shift_kode === 'SHIFT_2' ? 'Shift 2 (Siang)' : l.shift_kode)) + '</td>' +
+              '<td class="py-3 px-3 font-mono font-bold">' + l.jam_masuk + '</td>' +
+              '<td class="py-3 px-3 font-mono font-bold">' + l.jam_pulang + '</td>' +
+              '<td class="py-3 px-3 font-mono font-extrabold text-emerald-700">' + l.durasi_teks + '</td>' +
+              '<td class="py-3 px-3 text-slate-500">' + l.status_lokasi + '</td>' +
+              '<td class="py-3 px-3">' + badge + '</td>' +
+            '</tr>';
+        }).join('');
+      };
+
+      // 13B. Render Daftar Pengajuan Sakit / Izin / Cuti
+      window.renderLeaveRequests = function () {
+        var leaveEmpSel = document.getElementById('leave-emp-select');
+        if (leaveEmpSel) {
+          var targetId = currentSession.role === 'STAFF' && currentSession.empId ? currentSession.empId : focusedEmpId;
+          leaveEmpSel.innerHTML = employeesList.map(function (e) {
+            return '<option value="' + e.id + '" ' + (e.id === targetId ? 'selected' : '') + '>' + e.nama + ' — ' + e.posisi + '</option>';
+          }).join('');
+        }
+
+        var pendingCount = leaveRequests.filter(function (r) { return r.status_persetujuan === 'Menunggu Persetujuan'; }).length;
+        var approvedCount = leaveRequests.filter(function (r) { return r.status_persetujuan === 'Disetujui'; }).length;
+        var rejectedCount = leaveRequests.filter(function (r) { return r.status_persetujuan === 'Ditolak'; }).length;
+
+        var badgeNav = document.getElementById('badge-pending-leave');
+        if (badgeNav) badgeNav.textContent = pendingCount;
+        var elPend = document.getElementById('leave-count-pending');
+        var elAppr = document.getElementById('leave-count-approved');
+        var elRej = document.getElementById('leave-count-rejected');
+        if (elPend) elPend.textContent = pendingCount;
+        if (elAppr) elAppr.textContent = approvedCount;
+        if (elRej) elRej.textContent = rejectedCount;
+
+        var statusFilter = document.getElementById('filter-leave-status')?.value || 'ALL';
+        var listBox = document.getElementById('leave-requests-list');
+        if (!listBox) return;
+
+        var filtered = leaveRequests.filter(function (r) {
+          return statusFilter === 'ALL' || r.status_persetujuan === statusFilter;
+        });
+
+        if (filtered.length === 0) {
+          listBox.innerHTML = '<div class="p-6 text-center text-slate-400 font-bold text-xs">Belum ada data pengajuan sakit/izin untuk filter ini.</div>';
+          return;
+        }
+
+        listBox.innerHTML = filtered.map(function (req) {
+          var badgeStyle = 'bg-amber-50 text-amber-700 border-amber-200';
+          if (req.status_persetujuan === 'Disetujui') badgeStyle = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+          if (req.status_persetujuan === 'Ditolak') badgeStyle = 'bg-rose-50 text-rose-700 border-rose-200';
+
+          var typeBadge = 'bg-sky-50 text-[#0D8BFF]';
+          if (req.jenis_pengajuan === 'Sakit') typeBadge = 'bg-rose-50 text-rose-600';
+
+          var adminButtons = '';
+          if (req.status_persetujuan === 'Menunggu Persetujuan') {
+            adminButtons = '' +
+              '<div class="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-200/70">' +
+                '<button type="button" onclick="window.decideLeaveRequest(\'' + req.id + '\', \'Disetujui\')" class="px-3 py-1.5 rounded-xl bg-[#16C759] hover:bg-emerald-600 text-white text-[11px] font-extrabold transition shadow-sm">' +
+                  '✓ Setujui & Masukkan ke Rekap' +
+                '</button>' +
+                '<button type="button" onclick="window.decideLeaveRequest(\'' + req.id + '\', \'Ditolak\')" class="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-[11px] font-extrabold transition">' +
+                  '✕ Tolak' +
+                '</button>' +
+              '</div>';
+          }
+
+          return '' +
+            '<div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs">' +
+              '<div class="flex flex-wrap items-center justify-between gap-2 mb-1.5">' +
+                '<div class="flex items-center gap-2">' +
+                  '<span class="px-2.5 py-0.5 rounded-lg font-extrabold text-[11px] ' + typeBadge + '">' + req.jenis_pengajuan + '</span>' +
+                  '<span class="font-extrabold text-slate-900 text-sm">' + req.nama_karyawan + '</span>' +
+                  '<span class="text-[11px] text-slate-400 font-semibold">(' + req.posisi_karyawan + ')</span>' +
+                '</div>' +
+                '<span class="px-2.5 py-1 rounded-xl border text-[10px] font-extrabold ' + badgeStyle + '">' + req.status_persetujuan + '</span>' +
+              '</div>' +
+              '<p class="text-slate-700 font-medium leading-relaxed my-1.5">"' + req.alasan + '"</p>' +
+              '<div class="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">' +
+                '<span>📅 Tanggal: <strong class="text-slate-800 font-mono">' + req.tanggal_mulai + ' s.d. ' + req.tanggal_selesai + '</strong></span>' +
+                '<span>📎 Info/Kontak: <strong class="text-slate-700">' + (req.kontak_lampiran || '-') + '</strong></span>' +
+              '</div>' +
+              adminButtons +
+            '</div>';
+        }).join('');
+      };
+
+      // 13C. Kalkulasi Estimasi Memori Database Supabase Free Tier (500 MB)
+      function updateStorageMetricsUI() {
+        var totalRows = employeesList.length + attendanceLogs.length + leaveRequests.length;
+        // Rata-rata 1 baris JSON/relasional ~ 0.5 KB (0.0005 MB), ditambah overhead dasar 0.04 MB
+        var usedMB = (0.04 + (totalRows * 0.0005)).toFixed(3);
+        var pct = Math.min(100, Math.max(0.01, (usedMB / 500) * 100)).toFixed(2);
+
+        var sidePct = document.getElementById('sidebar-db-pct');
+        if (sidePct) sidePct.textContent = pct + '%';
+
+        var txt = document.getElementById('storage-usage-text');
+        if (txt) txt.textContent = usedMB + ' MB / 500 MB (' + pct + '%)';
+
+        var bar = document.getElementById('storage-usage-bar');
+        if (bar) bar.style.width = Math.max(2, parseFloat(pct)) + '%';
+
+        var cEmp = document.getElementById('storage-count-emp');
+        var cAtt = document.getElementById('storage-count-att');
+        var cLeave = document.getElementById('storage-count-leave');
+        if (cEmp) cEmp.textContent = employeesList.length + ' baris';
+        if (cAtt) cAtt.textContent = attendanceLogs.length + ' baris';
+        if (cLeave) cLeave.textContent = leaveRequests.length + ' baris';
+      }
+
+      // 14. Render Master Posisi di Modal & Filter
+      function renderMasterPositionsList() {
+        var posSelectEmp = document.getElementById('form-emp-position');
+        var posSelectRep = document.getElementById('filter-report-pos');
+        var tagsBox = document.getElementById('positions-tags-list');
+
+        if (posSelectEmp) {
+          posSelectEmp.innerHTML = masterPositions.map(function (p) {
+            return '<option value="' + p + '">' + p + '</option>';
+          }).join('');
+        }
+        if (posSelectRep) {
+          var currentVal = posSelectRep.value || 'ALL';
+          posSelectRep.innerHTML = '<option value="ALL">Semua Posisi</option>' + masterPositions.map(function (p) {
+            return '<option value="' + p + '" ' + (p === currentVal ? 'selected' : '') + '>' + p + '</option>';
+          }).join('');
+        }
+        if (tagsBox) {
+          tagsBox.innerHTML = masterPositions.map(function (p) {
+            return '<span class="px-2.5 py-1 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700">' + p + '</span>';
+          }).join('');
+        }
+      }
+
+      // ===============================================================
+      // FUNGSI INTERAKSI GLOBAL (TERHUBUNG KE TOMBOL ONCLICK HTML)
+      // ===============================================================
+
+      window.switchMenu = function (menuKey) {
+        var views = ['overview', 'facescan', 'schedule', 'employees', 'leave', 'reports'];
+        views.forEach(function (v) {
+          var sec = document.getElementById('view-' + v);
+          var btn = document.getElementById('nav-btn-' + v);
+          if (sec) {
+            if (v === menuKey) sec.classList.remove('hidden');
+            else sec.classList.add('hidden');
+          }
+          if (btn) {
+            if (v === menuKey) {
+              btn.className = 'w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold transition bg-[#0D8BFF] text-white shadow-md shadow-sky-500/25';
+            } else {
+              btn.className = 'w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition';
+            }
+          }
+        });
+      };
+
+      // Fungsi Submit Pengajuan Sakit / Izin / Cuti Baru
+      window.submitLeaveRequest = function (e) {
+        e.preventDefault();
+        var empId = document.getElementById('leave-emp-select').value;
+        var emp = employeesList.find(function (x) { return x.id === empId; }) || employeesList[0];
+        var jenis = document.getElementById('leave-type-select').value;
+        var tglMulai = document.getElementById('leave-date-start').value;
+        var tglSelesai = document.getElementById('leave-date-end').value;
+        var alasan = document.getElementById('leave-reason-input').value.trim();
+        var kontak = document.getElementById('leave-attachment-input').value.trim();
+
+        var newReq = {
+          id: 'leave-' + Date.now(),
+          karyawan_id: emp.id,
+          nama_karyawan: emp.nama,
+          posisi_karyawan: emp.posisi,
+          jenis_pengajuan: jenis,
+          tanggal_mulai: tglMulai,
+          tanggal_selesai: tglSelesai || tglMulai,
+          alasan: alasan,
+          kontak_lampiran: kontak || 'Tanpa Lampiran File (Hemat Memori)',
+          status_persetujuan: 'Menunggu Persetujuan',
+          created_at: 'Baru saja'
+        };
+
+        leaveRequests.unshift(newReq);
+        document.getElementById('leave-reason-input').value = '';
+        document.getElementById('leave-attachment-input').value = '';
+        renderAll();
+        showToast('Pengajuan ' + jenis + ' untuk ' + emp.nama + ' berhasil dikirim!');
+      };
+
+      // Fungsi Persetujuan Admin (Otomatis Masuk ke Tabel Rekap Absensi)
+      window.decideLeaveRequest = function (reqId, decision) {
+        var req = leaveRequests.find(function (r) { return r.id === reqId; });
+        if (!req) return;
+        req.status_persetujuan = decision;
+
+        if (decision === 'Disetujui') {
+          attendanceLogs.unshift({
+            id: 'log-leave-' + Date.now(),
+            karyawan_id: req.karyawan_id,
+            nama_karyawan: req.nama_karyawan,
+            posisi_karyawan: req.posisi_karyawan,
+            tanggal: req.tanggal_mulai,
+            shift_kode: 'IZIN/SAKIT',
+            jam_masuk: '-',
+            jam_pulang: '-',
+            durasi_menit: 0,
+            durasi_teks: '00:00:00',
+            menit_terlambat: 0,
+            jarak_meter: 0,
+            status_lokasi: req.jenis_pengajuan + ' (Disetujui HR)',
+            status_kehadiran: req.jenis_pengajuan,
+            skor_wajah: 100.0
+          });
+          showToast('Disetujui! Status ' + req.jenis_pengajuan + ' (' + req.nama_karyawan + ') otomatis masuk ke Rekap Kehadiran.');
+        } else {
+          showToast('Pengajuan ' + req.nama_karyawan + ' ditolak.');
+        }
+        renderAll();
+      };
+
+      // Fungsi Modal Manajer Penyimpanan Supabase & Kosongkan Transaksi
+      window.openStorageModal = function () {
+        updateStorageMetricsUI();
+        document.getElementById('purge-confirm-input').value = '';
+        document.getElementById('modal-storage').classList.remove('hidden');
+      };
+      window.closeStorageModal = function () {
+        document.getElementById('modal-storage').classList.add('hidden');
+      };
+      window.togglePurgeDateRange = function () {
+        var mode = document.getElementById('purge-mode-select').value;
+        var box = document.getElementById('purge-custom-dates');
+        if (mode === 'CUSTOM_RANGE') box.classList.remove('hidden');
+        else box.classList.add('hidden');
+      };
+
+      window.executeStoragePurge = function (e) {
+        e.preventDefault();
+        var confirmText = (document.getElementById('purge-confirm-input').value || '').trim().toUpperCase();
+        if (confirmText !== 'HAPUS') {
+          showToast('Ketik kata HAPUS dengan benar untuk mengonfirmasi pembersihan transaksi!');
+          return;
+        }
+
+        var mode = document.getElementById('purge-mode-select').value;
+        var autoBackup = document.getElementById('purge-auto-backup').checked;
+
+        if (autoBackup && (attendanceLogs.length > 0 || leaveRequests.length > 0)) {
+          window.exportReportCSV();
+        }
+
+        var beforeCount = attendanceLogs.length + leaveRequests.length;
+
+        if (mode === 'ALL_LOGS') {
+          attendanceLogs = [];
+          leaveRequests = [];
+        } else if (mode === 'CUSTOM_RANGE') {
+          var s = document.getElementById('purge-date-start').value;
+          var end = document.getElementById('purge-date-end').value;
+          attendanceLogs = attendanceLogs.filter(function (l) {
+            return !(l.tanggal >= s && l.tanggal <= end);
+          });
+          leaveRequests = leaveRequests.filter(function (r) {
+            return !(r.tanggal_mulai >= s && r.tanggal_mulai <= end);
+          });
+        } else {
+          // Mode > 3 Bulan atau > 6 Bulan (Hapus transaksi lama, sisakan bulan berjalan)
+          var cutoff = mode === 'OLDER_3M' ? '2026-08-05' : '2026-05-05';
+          attendanceLogs = attendanceLogs.filter(function (l) { return l.tanggal >= cutoff; });
+          leaveRequests = leaveRequests.filter(function (r) { return r.tanggal_mulai >= cutoff; });
+        }
+
+        var afterCount = attendanceLogs.length + leaveRequests.length;
+        var deletedCount = Math.max(0, beforeCount - afterCount);
+
+        window.closeStorageModal();
+        renderAll();
+        showToast('Berhasil mengosongkan ' + deletedCount + ' transaksi! Data 40 karyawan tetap utuh & memori DB lega.');
+      };
+
+      window.changeFocusedEmployee = function (empId) {
+        focusedEmpId = empId;
+        renderAll();
+      };
+
+      window.switch3DCharacterStyle = function (styleKey) {
+        var emp = employeesList.find(function (e) { return e.id === focusedEmpId; });
+        if (emp) emp.avatar_style = styleKey;
+        renderAll();
+        showToast('Karakter Wanita Animasi 3D diperbarui!');
+      };
+
+      window.set3DExpression = function (expr) {
+        current3DExpression = expr;
+        ['smile', 'focus', 'wink'].forEach(function (k) {
+          var b = document.getElementById('expr-btn-' + k);
+          if (b) {
+            b.className = k === expr
+              ? 'px-2.5 py-1 rounded-xl bg-[#0D8BFF] text-white text-[10px] font-extrabold shadow-sm transition'
+              : 'px-2.5 py-1 rounded-xl bg-white/90 text-slate-700 text-[10px] font-bold shadow-sm hover:bg-white transition';
+          }
+        });
+        renderAll();
+      };
+
+      window.toggleWorkTimer = function () {
+        timerRunning = !timerRunning;
+        var btn = document.getElementById('btn-toggle-timer');
+        var badge = document.getElementById('timer-status-badge');
+        if (btn) btn.textContent = timerRunning ? '⏸' : '▶';
+        if (badge) {
+          badge.textContent = timerRunning ? 'Sedang Bekerja' : 'Dijeda';
+          badge.className = timerRunning
+            ? 'px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-extrabold'
+            : 'px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 text-[10px] font-extrabold';
+        }
+      };
+
+      window.selectCalDate = function (dayNum) {
+        selectedCalendarDay = dayNum;
+        renderCalendarAndTimeline();
+      };
+
+      window.changeCalendarDay = function (delta) {
+        selectedCalendarDay = Math.max(1, Math.min(30, selectedCalendarDay + delta));
+        renderCalendarAndTimeline();
+      };
+
+      window.filterByDepartmentSidebar = function (deptName) {
+        var sel = document.getElementById('emp-dept-filter');
+        if (sel) sel.value = deptName;
+        window.switchMenu('employees');
+        window.renderEmployeesTable();
+      };
+
+      // Proses Absensi Scan Wajah 3D oleh Admin
+      window.processFaceAttendance = function (mode) {
+        var emp = employeesList.find(function (e) { return e.id === focusedEmpId; }) || employeesList[0];
+        var shiftCode = document.getElementById('scanner-shift-select')?.value || emp.shift_default;
+        var distMeters = parseInt(document.getElementById('scanner-gps-distance')?.value || '14', 10);
+        var withinRadius = distMeters <= workSettings.maxRadiusMeters;
+        var locStatus = withinRadius
+          ? 'Di Kantor (' + distMeters + 'm)'
+          : 'Luar Radius (' + distMeters + 'm)';
+
+        var now = new Date();
+        var hh = String(now.getHours()).padStart(2, '0');
+        var mm = String(now.getMinutes()).padStart(2, '0');
+        var timeStr = hh + ':' + mm;
+
+        var confScore = (97.5 + Math.random() * 2.3).toFixed(1);
+        document.getElementById('scan-overlay-confidence').textContent = 'Kecocokan Wajah: ' + confScore.replace('.', ',') + '%';
+
+        if (mode === 'IN') {
+          var schedIn = shiftCode === 'SHIFT_1' ? workSettings.s1In : workSettings.s2In;
+          var partsSched = schedIn.split(':');
+          var schedMinutes = parseInt(partsSched[0], 10) * 60 + parseInt(partsSched[1], 10);
+          var actualMinutes = now.getHours() * 60 + now.getMinutes();
+          var diffLate = Math.max(0, actualMinutes - (schedMinutes + workSettings.lateToleranceMinutes));
+
+          var newLog = {
+            id: 'log-' + Date.now(),
+            karyawan_id: emp.id,
+            nama_karyawan: emp.nama,
+            posisi_karyawan: emp.posisi,
+            tanggal: '2026-11-05',
+            shift_kode: shiftCode,
+            jam_masuk: timeStr,
+            jam_pulang: shiftCode === 'SHIFT_1' ? workSettings.s1Out : workSettings.s2Out,
+            durasi_menit: workSettings.targetDailyHours * 60,
+            durasi_teks: '0' + workSettings.targetDailyHours + ':00:00',
+            menit_terlambat: diffLate,
+            jarak_meter: distMeters,
+            status_lokasi: locStatus,
+            status_kehadiran: diffLate > 0 ? 'Terlambat (' + diffLate + 'm)' : 'Tepat Waktu',
+            skor_wajah: confScore
+          };
+          attendanceLogs.unshift(newLog);
+          window.set3DExpression('wink');
+          renderAll();
+          showToast('Scan Wajah MASUK berhasil: ' + emp.nama + ' (' + newLog.status_kehadiran + ')');
+        } else {
+          // Mode Check-Out & Hitung Jam Kerja
+          var outLog = {
+            id: 'log-' + Date.now(),
+            karyawan_id: emp.id,
+            nama_karyawan: emp.nama,
+            posisi_karyawan: emp.posisi,
+            tanggal: '2026-11-05',
+            shift_kode: shiftCode,
+            jam_masuk: shiftCode === 'SHIFT_1' ? workSettings.s1In : workSettings.s2In,
+            jam_pulang: timeStr,
+            durasi_menit: 495,
+            durasi_teks: '08:15:00',
+            menit_terlambat: 0,
+            jarak_meter: distMeters,
+            status_lokasi: locStatus,
+            status_kehadiran: 'Selesai (8j 15m)',
+            skor_wajah: confScore
+          };
+          attendanceLogs.unshift(outLog);
+          renderAll();
+          showToast('Scan PULANG selesai: ' + emp.nama + ' • Total Jam Kerja 08:15:00');
+        }
+      };
+
+      window.triggerDemoFaceScan = function () {
+        window.switchMenu('facescan');
+        window.processFaceAttendance('IN');
+      };
+
+      window.quickScanEmployee = function (empId) {
+        focusedEmpId = empId;
+        window.switchMenu('facescan');
+        renderAll();
+        showToast('Siap memindai wajah 3D untuk staf terpilih');
+      };
+
+      // Rotasi & Ubah Jadwal Shift Mingguan
+      window.cycleEmployeeDayShift = function (empIdx, dayIdx) {
+        var order = ['SHIFT_1', 'SHIFT_2', 'LIBUR'];
+        var curr = employeesList[empIdx].jadwal[dayIdx];
+        var next = order[(order.indexOf(curr) + 1) % order.length];
+        employeesList[empIdx].jadwal[dayIdx] = next;
+        renderWeeklyScheduleTable();
+      };
+
+      window.rotateAllWeeklyShifts = function () {
+        employeesList.forEach(function (emp) {
+          emp.shift_default = emp.shift_default === 'SHIFT_1' ? 'SHIFT_2' : 'SHIFT_1';
+          emp.jadwal = emp.jadwal.map(function (s) {
+            if (s === 'SHIFT_1') return 'SHIFT_2';
+            if (s === 'SHIFT_2') return 'SHIFT_1';
+            return 'LIBUR';
+          });
+        });
+        renderAll();
+        showToast('Seluruh jadwal Shift 1 & Shift 2 berhasil diputar untuk minggu berikutnya!');
+      };
+
+      // Login Karyawan (Hanya Nama & PIN) & Login Admin
+      window.openLoginModal = function (tabRole) {
+        document.getElementById('modal-login').classList.remove('hidden');
+        window.switchLoginTab(tabRole || 'STAFF');
+      };
+      window.closeLoginModal = function () {
+        document.getElementById('modal-login').classList.add('hidden');
+      };
+      window.switchLoginTab = function (role) {
+        var fStaff = document.getElementById('form-staff-login');
+        var fAdmin = document.getElementById('form-admin-login');
+        var bStaff = document.getElementById('tab-btn-staff');
+        var bAdmin = document.getElementById('tab-btn-admin');
+        if (role === 'STAFF') {
+          fStaff.classList.remove('hidden');
+          fAdmin.classList.add('hidden');
+          bStaff.className = 'py-2 text-xs font-extrabold rounded-xl bg-white text-slate-900 shadow-sm';
+          bAdmin.className = 'py-2 text-xs font-bold rounded-xl text-slate-500';
+        } else {
+          fAdmin.classList.remove('hidden');
+          fStaff.classList.add('hidden');
+          bAdmin.className = 'py-2 text-xs font-extrabold rounded-xl bg-white text-slate-900 shadow-sm';
+          bStaff.className = 'py-2 text-xs font-bold rounded-xl text-slate-500';
+        }
+      };
+
+      window.togglePinVisibility = function () {
+        var inp = document.getElementById('login-staff-pin');
+        var btn = document.getElementById('btn-show-pin');
+        if (inp.type === 'password') {
+          inp.type = 'text';
+          btn.textContent = 'Sembunyikan PIN';
+        } else {
+          inp.type = 'password';
+          btn.textContent = 'Lihat PIN';
+        }
+      };
+
+      window.handleStaffLogin = function (e) {
+        e.preventDefault();
+        var nameVal = (document.getElementById('login-staff-name').value || '').trim();
+        var pinVal = (document.getElementById('login-staff-pin').value || '').trim();
+
+        var found = employeesList.find(function (emp) {
+          return (emp.nama.toLowerCase() === nameVal.toLowerCase() || emp.nama.toLowerCase().includes(nameVal.toLowerCase())) &&
+                 String(emp.pin_password) === String(pinVal);
+        });
+
+        if (!found) {
+          showToast('Nama Karyawan atau PIN tidak cocok! (Contoh: Bella Putri / PIN: 123456)');
+          return;
+        }
+
+        currentSession = { role: 'STAFF', name: found.nama, empId: found.id };
+        focusedEmpId = found.id;
+        document.getElementById('active-session-badge').innerHTML = 'Akses Karyawan: <strong class="text-emerald-300">' + found.nama + ' (' + found.posisi + ')</strong>';
+        window.closeLoginModal();
+        window.switchMenu('overview');
+        renderAll();
+        showToast('Selamat datang, ' + found.nama + '! Login Nama & PIN berhasil.');
+      };
+
+      window.handleAdminLogin = function (e) {
+        e.preventDefault();
+        var email = document.getElementById('login-admin-email').value;
+        currentSession = { role: 'ADMIN', name: email, empId: null };
+        document.getElementById('active-session-badge').innerHTML = 'Akses: <strong class="text-white">Admin HR (' + email + ')</strong>';
+        window.closeLoginModal();
+        renderAll();
+        showToast('Berhasil masuk sebagai Admin HR!');
+      };
+
+      window.quickSwitchUser = function (role) {
+        if (role === 'STAFF') {
+          var bella = employeesList[0];
+          currentSession = { role: 'STAFF', name: bella.nama, empId: bella.id };
+          focusedEmpId = bella.id;
+          document.getElementById('active-session-badge').innerHTML = 'Akses Karyawan: <strong class="text-emerald-300">' + bella.nama + ' (Login Nama & PIN)</strong>';
+          window.switchMenu('overview');
+          renderAll();
+          showToast('Masuk Cepat Karyawan: ' + bella.nama + ' (PIN: 123456)');
+        } else {
+          currentSession = { role: 'ADMIN', name: 'Admin HR', empId: null };
+          document.getElementById('active-session-badge').innerHTML = 'Akses: <strong class="text-white">Admin HR (Akses Penuh)</strong>';
+          renderAll();
+          showToast('Masuk Cepat sebagai Admin HR');
+        }
+      };
+
+      // Modal Pengaturan Jam Kerja & Posisi
+      window.openWorkHoursModal = function () {
+        document.getElementById('set-s1-in').value = workSettings.s1In;
+        document.getElementById('set-s1-out').value = workSettings.s1Out;
+        document.getElementById('set-s2-in').value = workSettings.s2In;
+        document.getElementById('set-s2-out').value = workSettings.s2Out;
+        document.getElementById('set-late-tolerance').value = workSettings.lateToleranceMinutes;
+        document.getElementById('set-target-daily').value = workSettings.targetDailyHours;
+        document.getElementById('set-max-radius').value = workSettings.maxRadiusMeters;
+        renderMasterPositionsList();
+        document.getElementById('modal-work-hours').classList.remove('hidden');
+      };
+      window.closeWorkHoursModal = function () {
+        document.getElementById('modal-work-hours').classList.add('hidden');
+      };
+
+      window.saveWorkHoursSettings = function (e) {
+        e.preventDefault();
+        workSettings.s1In = document.getElementById('set-s1-in').value || '07:00';
+        workSettings.s1Out = document.getElementById('set-s1-out').value || '15:00';
+        workSettings.s2In = document.getElementById('set-s2-in').value || '15:00';
+        workSettings.s2Out = document.getElementById('set-s2-out').value || '23:00';
+        workSettings.lateToleranceMinutes = parseInt(document.getElementById('set-late-tolerance').value || '15', 10);
+        workSettings.targetDailyHours = parseInt(document.getElementById('set-target-daily').value || '8', 10);
+        workSettings.maxRadiusMeters = parseInt(document.getElementById('set-max-radius').value || '100', 10);
+
+        document.getElementById('label-max-radius').textContent = workSettings.maxRadiusMeters + ' Meter';
+        document.getElementById('timer-task-title').textContent = 'Target Harian: 0' + workSettings.targetDailyHours + ':00:00';
+        window.closeWorkHoursModal();
+        renderAll();
+        showToast('Pengaturan Jam Kerja Shift 1 & 2 serta Radius GPS berhasil diperbarui!');
+      };
+
+      window.addNewMasterPosition = function () {
+        var inp = document.getElementById('new-position-input');
+        var val = (inp.value || '').trim();
+        if (!val) return;
+        if (masterPositions.indexOf(val) === -1) {
+          masterPositions.push(val);
+        }
+        inp.value = '';
+        renderMasterPositionsList();
+        showToast('Posisi jabatan "' + val + '" berhasil ditambahkan!');
+      };
+
+      // Modal Tambah / Edit Karyawan
+      window.openAddEmployeeModal = function () {
+        document.getElementById('form-emp-id').value = '';
+        document.getElementById('form-emp-name').value = '';
+        document.getElementById('form-emp-pin').value = '123456';
+        renderMasterPositionsList();
+        document.getElementById('modal-employee').classList.remove('hidden');
+      };
+      window.closeEmployeeModal = function () {
+        document.getElementById('modal-employee').classList.add('hidden');
+      };
+
+      window.editEmployee = function (empId) {
+        var emp = employeesList.find(function (e) { return e.id === empId; });
+        if (!emp) return;
+        renderMasterPositionsList();
+        document.getElementById('form-emp-id').value = emp.id;
+        document.getElementById('form-emp-name').value = emp.nama;
+        document.getElementById('form-emp-pin').value = emp.pin_password;
+        document.getElementById('form-emp-position').value = emp.posisi;
+        document.getElementById('form-emp-level').value = emp.level_posisi || 'Madya';
+        document.getElementById('form-emp-dept').value = emp.departemen;
+        document.getElementById('form-emp-shift').value = emp.shift_default;
+        document.getElementById('form-emp-avatar').value = emp.avatar_style || 'female_bella';
+        document.getElementById('modal-employee').classList.remove('hidden');
+      };
+
+      window.saveEmployeeForm = function (e) {
+        e.preventDefault();
+        var id = document.getElementById('form-emp-id').value;
+        var nama = document.getElementById('form-emp-name').value.trim();
+        var pin = document.getElementById('form-emp-pin').value.trim() || '123456';
+        var posisi = document.getElementById('form-emp-position').value;
+        var level = document.getElementById('form-emp-level').value;
+        var dept = document.getElementById('form-emp-dept').value;
+        var shift = document.getElementById('form-emp-shift').value;
+        var avatar = document.getElementById('form-emp-avatar').value;
+
+        if (id) {
+          var existing = employeesList.find(function (x) { return x.id === id; });
+          if (existing) {
+            existing.nama = nama;
+            existing.pin_password = pin;
+            existing.posisi = posisi;
+            existing.level_posisi = level;
+            existing.departemen = dept;
+            existing.shift_default = shift;
+            existing.avatar_style = avatar;
+          }
+        } else {
+          var newIdx = employeesList.length + 1;
+          var newEmp = {
+            id: 'emp-' + Date.now(),
+            nik: 'EMP-' + String(newIdx).padStart(3, '0'),
+            nama: nama,
+            pin_password: pin,
+            posisi: posisi,
+            level_posisi: level,
+            departemen: dept,
+            email: nama.toLowerCase().replace(/\s+/g, '.') + '@perusahaan.id',
+            tanggal_bergabung: '2026-11-05',
+            shift_default: shift,
+            avatar_style: avatar,
+            gps_distance: 15,
+            jadwal: shift === 'SHIFT_1'
+              ? ['SHIFT_1', 'SHIFT_1', 'SHIFT_1', 'SHIFT_2', 'SHIFT_2', 'SHIFT_1', 'LIBUR']
+              : ['SHIFT_2', 'SHIFT_2', 'SHIFT_1', 'SHIFT_1', 'SHIFT_2', 'SHIFT_2', 'LIBUR']
+          };
+          employeesList.unshift(newEmp);
+          focusedEmpId = newEmp.id;
+        }
+
+        window.closeEmployeeModal();
+        renderAll();
+        showToast('Data karyawan "' + nama + '" (PIN: ' + pin + ') berhasil disimpan!');
+      };
+
+      window.fillUpTo40Employees = function () {
+        showToast('Kapasitas penuh 40 karyawan telah aktif dan siap digunakan!');
+        renderAll();
+      };
+
+      // Filter Rekap & Unduh CSV
+      window.resetReportFilterDates = function () {
+        document.getElementById('filter-date-start').value = '2026-11-01';
+        document.getElementById('filter-date-end').value = '2026-11-30';
+        document.getElementById('filter-report-emp').value = 'ALL';
+        document.getElementById('filter-report-pos').value = 'ALL';
+        window.renderWorkHoursReport();
+        showToast('Filter rentang tanggal direset ke bulan ini');
+      };
+
+      window.exportReportCSV = function () {
+        var headers = ['Tanggal,Nama Karyawan,Posisi,Shift,Jam Masuk,Jam Pulang,Durasi Jam Kerja,Lokasi GPS,Status'];
+        var rows = attendanceLogs.map(function (l) {
+          return [
+            l.tanggal,
+            '"' + l.nama_karyawan + '"',
+            '"' + l.posisi_karyawan + '"',
+            l.shift_kode,
+            l.jam_masuk,
+            l.jam_pulang,
+            l.durasi_teks,
+            '"' + l.status_lokasi + '"',
+            '"' + l.status_kehadiran + '"'
+          ].join(',');
+        });
+        var csvContent = 'data:text/csv;charset=utf-8,' + headers.concat(rows).join('\n');
+        var encodedUri = encodeURI(csvContent);
+        var link = document.createElement('a');
+        link.setAttribute('href', encodedUri);
+        link.setAttribute('download', 'rekap_jam_kerja_staffcentral.csv');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast('File CSV Rekap Jam Kerja berhasil diunduh!');
+      };
+
+      // Webcam Asli (Opsional)
+      window.toggleRealWebcam = function () {
+        var video = document.getElementById('real-webcam-video');
+        var btn = document.getElementById('btn-webcam-toggle');
+        if (activeWebcamStream) {
+          activeWebcamStream.getTracks().forEach(function (t) { t.stop(); });
+          activeWebcamStream = null;
+          video.classList.add('hidden');
+          btn.textContent = '📷 Gunakan Kamera Asli';
+          showToast('Kembali ke mode Pemindai Karakter Wanita 3D');
+          return;
+        }
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          navigator.mediaDevices.getUserMedia({ video: true }).then(function (stream) {
+            activeWebcamStream = stream;
+            video.srcObject = stream;
+            video.classList.remove('hidden');
+            btn.textContent = '🛑 Matikan Kamera Asli';
+            showToast('Kamera perangkat aktif!');
+          }).catch(function () {
+            showToast('Kamera tidak diizinkan di sandbox, tetap menggunakan Karakter 3D.');
+          });
+        }
+      };
+
+      // Modal SQL
+      window.openSqlModal = function () {
+        document.getElementById('modal-sql').classList.remove('hidden');
+      };
+      window.closeSqlModal = function () {
+        document.getElementById('modal-sql').classList.add('hidden');
+      };
+      window.copySqlText = function () {
+        var text = document.getElementById('sql-code-block').innerText;
+        var temp = document.createElement('textarea');
+        temp.value = text;
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand('copy');
+        document.body.removeChild(temp);
+        showToast('Kode SQL Supabase berhasil disalin ke clipboard!');
+      };
+
+      // 15. Interval Timer Jam Kerja Real-Time & Jam WIB
+      setInterval(function () {
+        if (timerRunning) {
+          timerSeconds++;
+          var h = String(Math.floor(timerSeconds / 3600)).padStart(2, '0');
+          var m = String(Math.floor((timerSeconds % 3600) / 60)).padStart(2, '0');
+          var s = String(timerSeconds % 60).padStart(2, '0');
+          var timerEl = document.getElementById('live-work-timer');
+          if (timerEl) timerEl.textContent = h + ':' + m + ':' + s;
+        }
+        var now = new Date();
+        var clockEl = document.getElementById('scan-overlay-clock');
+        if (clockEl) {
+          clockEl.textContent =
+            String(now.getHours()).padStart(2, '0') + ':' +
+            String(now.getMinutes()).padStart(2, '0') + ':' +
+            String(now.getSeconds()).padStart(2, '0') + ' WIB';
+        }
+      }, 1000);
+
+      // 16. Inisialisasi Instan Saat DOM Siap
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', renderAll);
+      } else {
+        renderAll();
+      }
+    })();
+  </script>
+</body>
+</html>

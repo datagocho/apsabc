@@ -4,6 +4,7 @@
 <title>StaffCentral Indonesia</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js"></script>
 <script>
 const IS_PREVIEW=false; // true = uji coba tanpa database | false = 100% Supabase
 const SUPABASE_URL="https://oderlxahaxjmgzgtianf.supabase.co";
@@ -79,7 +80,7 @@ const mins=t=>{const[a,b]=String(t).split(':');return+a*60+ +b};
 const dur=m=>Math.floor(m/60)+'j '+(m%60)+'m';
 const AV={pria:'👨',wanita:'👩',hijab:'🧕'};
 const DAYS=['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'];
-const DEF={shift1_in:'07:00',shift1_out:'15:00',shift2_in:'15:00',shift2_out:'23:00',toleransi_menit:15,target_jam:8,radius_gps:100};
+const DEF={shift1_in:'07:00',shift1_out:'15:00',shift2_in:'15:00',shift2_out:'23:00',toleransi_menit:15,target_jam:8,radius_gps:100,office_lat:null,office_lng:null};
 let db=null;if(!P){try{db=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY)}catch(e){console.error(e)}}
 const S={role:null,me:null,view:'dash',emps:[],logs:[],leaves:[],cfg:{...DEF},f:{s:ymd(new Date(new Date().getFullYear(),new Date().getMonth(),1)),e:ymd(new Date()),emp:'ALL'}};
 
@@ -116,9 +117,9 @@ async function loadData(){
 async function refresh(){try{await loadData();render()}catch(e){err(e)}}
 
 // ===== TAMPILAN =====
-const NAV=[['dash','📊','Dasbor',0],['scan','📷','Absen',1],['emps','👥','Karyawan',1],['sched','🗓️','Jadwal',0],['leave','🏥','Izin/Sakit',0],['rep','📈','Rekap',0]];
-const TTL={dash:'Dasbor',scan:'Terminal Absensi',emps:'Data Karyawan',sched:'Jadwal 2 Shift',leave:'Pengajuan Izin / Sakit',rep:'Rekap Jam Kerja'};
-const logRow=l=>`<div class="row"><div><b>${esc(l.nama_karyawan)}</b> <span class="pill">${esc(l.shift_kode)}</span><div class="mut">${esc(l.tanggal)} • ${esc(l.waktu_masuk)} - ${esc(l.waktu_pulang)} • ${dur(l.durasi_menit||0)}</div></div>${stPill(l.status_kehadiran)}</div>`;
+const NAV=[['dash','📊','Dasbor',0],['scan','📷','Absen',0],['emps','👥','Karyawan',1],['sched','🗓️','Jadwal',0],['leave','🏥','Izin/Sakit',0],['rep','📈','Rekap',0]];
+const TTL={dash:'Dasbor',scan:'Absensi Wajah & Lokasi',emps:'Data Karyawan',sched:'Jadwal 2 Shift',leave:'Pengajuan Izin / Sakit',rep:'Rekap Jam Kerja'};
+const logRow=l=>`<div class="row"><div><b>${esc(l.nama_karyawan)}</b> <span class="pill">${esc(l.shift_kode)}</span><div class="mut">${esc(l.tanggal)} • ${esc(l.waktu_masuk)} - ${esc(l.waktu_pulang)} • ${dur(l.durasi_menit||0)}${l.jarak_meter!=null?' • 📍'+l.jarak_meter+' m':''}${l.skor_wajah!=null?' • 🙂'+l.skor_wajah+'%':''}</div></div>${stPill(l.status_kehadiran)}</div>`;
 const empty=t=>`<div class="mut" style="padding:14px;text-align:center">${t}</div>`;
 
 const V={
@@ -130,11 +131,18 @@ dash(){const t=ymd(new Date()),ym=t.slice(0,7),card=(i,l,v)=>`<div class="g card
  const me=emp(S.me),M2=S.logs.filter(l=>l.tanggal.startsWith(ym)&&l.shift_kode!=='IZIN');
  return `<div class="cards">${card('👤','Karyawan',esc(me?.nama||'-'))+card('🗓️','Shift Hari Ini',me?shLbl(me.jadwal_minggu?.[todayIdx()]||'LIBUR'):'-')+card('✅','Hadir Bulan Ini',M2.length+' hari')+card('⏱️','Total Jam Bulan Ini',dur(M2.reduce((a,l)=>a+(l.durasi_menit||0),0)))}</div>
  <div class="g p"><h3>Absensi Terakhir Saya</h3>${S.logs.slice(0,6).map(logRow).join('')||empty('Belum ada riwayat absensi.')}</div>`},
-scan(){const o=S.emps.map(e=>`<option value="${e.id}">${esc(e.nama)} (${esc(e.nik)})</option>`).join(''),t=ymd(new Date()),L=S.logs.filter(l=>l.tanggal===t);
- return `<div class="g p"><h3>Terminal Absensi</h3><p class="mut">Pilih karyawan lalu catat masuk / pulang. Telat dihitung dari jam shift + toleransi (${S.cfg.toleransi_menit} mnt).</p>
- <div class="two"><div><label>Karyawan</label><select class="in" id="sc-emp" onchange="A.scDef()">${o}</select></div><div><label>Shift</label><select class="in" id="sc-shift"><option value="SHIFT_1">${shLbl('SHIFT_1')}</option><option value="SHIFT_2">${shLbl('SHIFT_2')}</option></select></div></div>
- <div class="f" style="margin-top:14px"><button class="btn ok" onclick="A.scan('IN')">📥 Check-In</button><button class="btn" onclick="A.scan('OUT')">📤 Check-Out</button></div></div>
- <div class="g p"><h3>Log Hari Ini</h3>${L.map(logRow).join('')||empty('Belum ada log.')}</div>`},
+scan(){const t=ymd(new Date()),L=S.logs.filter(l=>l.tanggal===t&&(isA()||l.karyawan_id===S.me)),
+ cam='<div style="position:relative;max-width:320px;margin:10px auto;aspect-ratio:1;border-radius:22px;overflow:hidden;background:#0f172a"><video id="cam" playsinline muted style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1)"></video><div id="camst" style="position:absolute;left:8px;right:8px;bottom:8px;text-align:center;font-weight:800;font-size:11px;color:#fff;background:rgba(0,0,0,.55);border-radius:10px;padding:5px">Kamera belum aktif</div></div>',
+ logs=`<div class="g p"><h3>Log Hari Ini</h3>${L.map(logRow).join('')||empty('Belum ada log.')}</div>`;
+ if(isA()){const o=S.emps.map(e=>`<option value="${e.id}">${e.face_descriptor?'🙂':'⚠️'} ${esc(e.nama)} (${esc(e.nik)})</option>`).join('');
+  return `<div class="g p"><h3>Terminal Absensi (Admin)</h3><p class="mut">Check-in/out manual oleh admin & pendaftaran wajah. ⚠️ = wajah belum terdaftar. Karyawan absen mandiri lewat HP masing-masing (wajah + lokasi).</p>
+ <div class="two"><div><label>Karyawan</label><select class="in" id="sc-emp" onchange="A.scDef()">${o}</select></div><div><label>Shift</label><select class="in" id="sc-shift"><option value="SHIFT_1">${shLbl('SHIFT_1')}</option><option value="SHIFT_2">${shLbl('SHIFT_2')}</option></select></div></div>${cam}
+ <div class="f" style="margin-top:8px;justify-content:center"><button class="btn ok" style="flex:0" onclick="A.scan('IN')">📥 Check-In</button><button class="btn" style="flex:0" onclick="A.scan('OUT')">📤 Check-Out</button><button class="btn w" style="flex:0" onclick="A.enrollSel()">🙂 Daftar / Ulang Wajah</button></div></div>`+logs}
+ const me=emp(S.me),sh=me?.jadwal_minggu?.[todayIdx()]||'LIBUR',lok=S.cfg.office_lat!=null;
+ return `<div class="g p"><h3>Absensi Wajah & Lokasi</h3><p class="mut">Jadwal hari ini: <b>${shLbl(sh)}</b> • Radius kantor ${S.cfg.radius_gps} m ${lok?'':'• ⚠️ Admin belum mengatur lokasi kantor'}</p>${cam}
+ <div id="gst" class="mut" style="text-align:center">📍 Lokasi: belum dicek</div>
+ <div class="f" style="margin-top:12px;justify-content:center">${me?.face_descriptor?'':'<button class="btn" style="flex:0" onclick="A.enroll(\''+S.me+'\')">🙂 Daftarkan Wajah Saya</button>'}<button class="btn ok" style="flex:0" onclick="A.selfPunch('IN')">📥 Check-In</button><button class="btn" style="flex:0" onclick="A.selfPunch('OUT')">📤 Check-Out</button></div>
+ <p class="mut" style="text-align:center">${me?.face_descriptor?'🙂 Wajah sudah terdaftar':'⚠️ Daftarkan wajah dulu sebelum absen'}</p></div>`+logs},
 emps(){return `<div class="g p f"><div><h3>Data Karyawan</h3><span class="mut">Tersimpan permanen di database</span></div><div><input class="in" id="es" placeholder="Cari nama / NIK..." oninput="A.grid()"></div><button class="btn" style="flex:0" onclick="A.empForm()">+ Tambah</button></div><div class="grid" id="eg"></div>`},
 sched(){const list=isA()?S.emps:S.emps.filter(e=>e.id===S.me);
  return `<div class="g p f"><div><h3>Jadwal Roster Mingguan</h3><span class="mut">${isA()?'Klik tombol shift untuk mengganti (otomatis tersimpan)':'Jadwal Anda (baca saja)'}</span></div>${isA()?'<button class="btn ok" style="flex:0" onclick="A.rotate()">🔄 Tukar Shift</button>':''}</div>
@@ -153,6 +161,7 @@ rep(){const o=isA()?'<option value="ALL">Semua Karyawan</option>'+S.emps.map(e=>
 const AFTER={emps:()=>A.grid(),rep:()=>A.rep(),scan:()=>A.scDef()};
 
 function render(){
+ camOff();
  $('login').style.display=S.role?'none':'flex';$('shell').style.display=S.role?'flex':'none';$('bot').style.display='';
  $('prev').style.display=P?'flex':'none';
  if(!S.role){$('bot').style.display='none';return}
@@ -166,13 +175,32 @@ const modal=h=>{$('mdc').innerHTML=h;$('md').style.display='flex'};
 const close=()=>$('md').style.display='none';
 $('md').addEventListener('mousedown',e=>{if(e.target.id==='md')close()});
 
-function csvDown(rows,name){const c=['Tanggal,Nama,Shift,Masuk,Pulang,Durasi,Terlambat(mnt),Status'].concat(rows.map(l=>[l.tanggal,'"'+String(l.nama_karyawan).replace(/"/g,'""')+'"',l.shift_kode,l.waktu_masuk,l.waktu_pulang,dur(l.durasi_menit||0),l.menit_terlambat||0,l.status_kehadiran].join(','))).join('\n');
+function csvDown(rows,name){const c=['Tanggal,Nama,Shift,Masuk,Pulang,Durasi,Terlambat(mnt),Status,Jarak(m),SkorWajah'].concat(rows.map(l=>[l.tanggal,'"'+String(l.nama_karyawan).replace(/"/g,'""')+'"',l.shift_kode,l.waktu_masuk,l.waktu_pulang,dur(l.durasi_menit||0),l.menit_terlambat||0,l.status_kehadiran,l.jarak_meter??'',l.skor_wajah??''].join(','))).join('\n');
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+c],{type:'text/csv'}));a.download=name+'_'+ymd(new Date())+'.csv';a.click()}
 const repRows=()=>S.logs.filter(l=>l.tanggal>=S.f.s&&l.tanggal<=S.f.e&&(S.f.emp==='ALL'||l.karyawan_id===S.f.emp));
 
+// ===== WAJAH, LOKASI, ABSENSI =====
+const FACE_T=0.5,MURL='https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model';let FA={ready:false,stream:null};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const camSt=m=>{const e=$('camst');if(e)e.textContent=m},geoSt=m=>{const e=$('gst');if(e)e.textContent=m};
+function camOff(){if(FA.stream){FA.stream.getTracks().forEach(t=>t.stop());FA.stream=null}}
+async function faceLoad(){if(FA.ready)return;if(!window.faceapi)throw new Error('Library wajah gagal dimuat, cek koneksi internet');await Promise.all([faceapi.nets.tinyFaceDetector.loadFromUri(MURL),faceapi.nets.faceLandmark68Net.loadFromUri(MURL),faceapi.nets.faceRecognitionNet.loadFromUri(MURL)]);FA.ready=true}
+async function camOn(){if(!navigator.mediaDevices)throw new Error('Kamera butuh koneksi HTTPS');if(!FA.stream)FA.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:480,height:480},audio:false}).catch(()=>{throw new Error('Izin kamera ditolak. Aktifkan kamera untuk situs ini.')});const v=$('cam');v.srcObject=FA.stream;await v.play()}
+async function faceGrab(n=8){for(let i=0;i<n;i++){const r=await faceapi.detectSingleFace($('cam'),new faceapi.TinyFaceDetectorOptions({inputSize:320,scoreThreshold:.5})).withFaceLandmarks().withFaceDescriptor();if(r)return Array.from(r.descriptor);await sleep(400)}return null}
+const fdist=(a,b)=>Math.sqrt(a.reduce((q,x,i)=>q+(x-b[i])**2,0));
+const geo=()=>new Promise((ok,no)=>{if(!navigator.geolocation)return no(new Error('Browser tidak mendukung GPS'));navigator.geolocation.getCurrentPosition(p=>ok(p.coords),e=>no(new Error(e.code===1?'Izin lokasi ditolak. Aktifkan lokasi untuk situs ini.':'Gagal membaca lokasi, coba di area terbuka')),{enableHighAccuracy:true,timeout:15000,maximumAge:0})});
+const dist=(a,b,c,d)=>{const r=x=>x*Math.PI/180,h=Math.sin(r(c-a)/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(r(d-b)/2)**2;return 2*6371000*Math.asin(Math.sqrt(h))};
+async function punch(id,sh,mode,meta){const e=emp(id);if(!e)return toast('Pilih karyawan dulu');
+ const now=new Date(),t=ymd(now),w=hm(now),open=S.logs.find(l=>l.karyawan_id===id&&l.tanggal===t&&l.shift_kode!=='IZIN'&&l.waktu_pulang==='-');
+ try{if(mode==='IN'){if(open)return toast('Sudah check-in & belum check-out');
+  const late=Math.max(0,mins(w)-mins(sh==='SHIFT_1'?S.cfg.shift1_in:S.cfg.shift2_in)),tl=late>S.cfg.toleransi_menit?late:0;
+  await D.ins('absensi',{karyawan_id:id,nama_karyawan:e.nama,tanggal:t,shift_kode:sh,waktu_masuk:w,waktu_pulang:'-',durasi_menit:0,menit_terlambat:tl,status_kehadiran:tl?'Terlambat':'Tepat Waktu',...meta});toast('Check-in '+e.nama+' '+w+(tl?' (terlambat '+tl+' mnt)':''))}
+ else{if(!open)return toast('Belum ada check-in aktif hari ini');let d=mins(w)-mins(open.waktu_masuk);if(d<0)d+=1440;await D.upd('absensi',open.id,{waktu_pulang:w,durasi_menit:d});toast('Check-out '+e.nama+' ('+dur(d)+')')}
+ await refresh()}catch(x){err(x)}}
+
 // ===== AKSI =====
 const A=window.A={
-go(v){if(!isA()&&(v==='scan'||v==='emps'))v='dash';S.view=v;render()},
+go(v){if(!isA()&&v==='emps')v='dash';S.view=v;render()},
 tab(t){$('fs').style.display=t==='S'?'':'none';$('fa').style.display=t==='A'?'':'none';$('t-s').className=t==='S'?'on':'';$('t-a').className=t==='A'?'on':''},
 async loginStaff(ev){ev.preventDefault();const n=$('ls-n').value.replace(/\s+/g,' ').trim(),p=$('ls-p').value.trim();
  try{let f;if(P)f=M.karyawan.find(e=>e.nama.toLowerCase()===n.toLowerCase()&&e.pin_password===p);else{const r=await db.from('karyawan').select('*').ilike('nama',n.replace(/[%_]/g,'')).eq('pin_password',p).limit(1);if(r.error)throw r.error;f=r.data[0]}
@@ -182,16 +210,27 @@ async loginAdmin(ev){ev.preventDefault();try{if(!P){const r=await db.auth.signIn
 async quick(r){S.role=r;S.me=r==='STAFF'?'p1':null;S.view='dash';await loadData();render()},
 async logout(){try{if(!P&&isA())await db.auth.signOut()}catch(_){}try{localStorage.removeItem('sc_me')}catch(_){}S.role=null;S.me=null;render()},
 scDef(){const e=emp($('sc-emp')?.value);if(e&&$('sc-shift'))$('sc-shift').value=e.jadwal_minggu?.[todayIdx()]==='SHIFT_2'?'SHIFT_2':e.jadwal_minggu?.[todayIdx()]==='SHIFT_1'?'SHIFT_1':e.shift_default},
-async scan(mode){const id=$('sc-emp').value,sh=$('sc-shift').value,e=emp(id);if(!e)return toast('Pilih karyawan dulu');
- const now=new Date(),t=ymd(now),w=hm(now),open=S.logs.find(l=>l.karyawan_id===id&&l.tanggal===t&&l.shift_kode!=='IZIN'&&l.waktu_pulang==='-');
- try{if(mode==='IN'){if(open)return toast('Sudah check-in & belum check-out');
-  const late=Math.max(0,mins(w)-mins(sh==='SHIFT_1'?S.cfg.shift1_in:S.cfg.shift2_in)),tl=late>S.cfg.toleransi_menit?late:0;
-  await D.ins('absensi',{karyawan_id:id,nama_karyawan:e.nama,tanggal:t,shift_kode:sh,waktu_masuk:w,waktu_pulang:'-',durasi_menit:0,menit_terlambat:tl,status_kehadiran:tl?'Terlambat':'Tepat Waktu',status_lokasi:'Terminal Admin'});toast('Check-in '+e.nama+' '+w)}
- else{if(!open)return toast('Belum ada check-in aktif hari ini');let d=mins(w)-mins(open.waktu_masuk);if(d<0)d+=1440;await D.upd('absensi',open.id,{waktu_pulang:w,durasi_menit:d});toast('Check-out '+e.nama+' ('+dur(d)+')')}
- await refresh();A.scDef()}catch(x){err(x)}},
+async scan(mode){await punch($('sc-emp').value,$('sc-shift').value,mode,{status_lokasi:'Terminal Admin',skor_wajah:null,jarak_meter:null,lat:null,lng:null});A.scDef()},
+async selfPunch(mode){const me=emp(S.me);if(!me)return;const sh=me.jadwal_minggu?.[todayIdx()];if(sh!=='SHIFT_1'&&sh!=='SHIFT_2')return toast('Hari ini jadwal Anda Libur');
+ let meta={status_lokasi:'Simulasi Preview',skor_wajah:99,jarak_meter:0,lat:null,lng:null};
+ if(!P){try{const c=S.cfg;if(c.office_lat==null||c.office_lng==null)return toast('Admin belum mengatur lokasi kantor');if(!me.face_descriptor)return toast('Daftarkan wajah Anda dulu');
+  geoSt('📍 Membaca lokasi...');const g=await geo(),d=Math.round(dist(g.latitude,g.longitude,+c.office_lat,+c.office_lng));
+  geoSt('📍 Jarak ke kantor '+d+' m (maks '+c.radius_gps+' m) • akurasi ±'+Math.round(g.accuracy)+' m');
+  if(g.accuracy>150)return toast('Akurasi GPS terlalu rendah, coba di area terbuka');if(d>c.radius_gps)return toast('Di luar radius kantor ('+d+' m)');
+  camSt('Memuat model wajah...');await faceLoad();await camOn();camSt('Tatap kamera...');const f=await faceGrab();if(!f){camSt('Wajah tidak terdeteksi');return toast('Wajah tidak terdeteksi, coba lagi')}
+  const dd=fdist(f,me.face_descriptor),sk=Math.max(0,Math.round((1-dd)*100));if(dd>FACE_T){camSt('❌ Wajah tidak cocok');return toast('Wajah tidak cocok ('+sk+'%)')}
+  camSt('✅ Wajah cocok '+sk+'%');meta={status_lokasi:'Di Kantor (Valid)',skor_wajah:sk,jarak_meter:d,lat:g.latitude,lng:g.longitude}}catch(x){return err(x)}}
+ await punch(me.id,sh,mode,meta)},
+async enroll(id){const e=emp(id);if(!e)return;if(!isA()&&e.face_descriptor)return toast('Wajah sudah terdaftar. Minta Admin untuk mereset.');
+ try{camSt('Memuat model wajah...');await faceLoad();await camOn();camSt('Tatap kamera, jangan bergerak...');const sm=[];
+  for(let i=0;i<3;i++){const d=await faceGrab();if(!d){camSt('Wajah tidak terdeteksi');return toast('Wajah tidak terdeteksi. Pastikan cahaya cukup.')}sm.push(d);await sleep(500)}
+  await D.upd('karyawan',id,{face_descriptor:sm[0].map((_,i)=>sm.reduce((a,x)=>a+x[i],0)/sm.length)});toast('Wajah '+e.nama+' berhasil didaftarkan');await refresh()}catch(x){err(x)}},
+enrollSel(){A.enroll($('sc-emp').value)},
+async resetFace(id){const e=emp(id);if(!e||!confirm('Reset data wajah '+e.nama+'? Karyawan harus mendaftar ulang.'))return;try{await D.upd('karyawan',id,{face_descriptor:null});toast('Wajah direset');await refresh()}catch(x){err(x)}},
+async useMyLoc(){try{const g=await geo();$('cla').value=g.latitude.toFixed(6);$('clo').value=g.longitude.toFixed(6);toast('Lokasi terisi (akurasi ±'+Math.round(g.accuracy)+' m). Berdirilah di kantor saat melakukan ini.')}catch(x){err(x)}},
 grid(){const q=($('es')?.value||'').toLowerCase(),L=S.emps.filter(e=>!q||e.nama.toLowerCase().includes(q)||(e.nik||'').toLowerCase().includes(q));
- $('eg').innerHTML=L.map(e=>`<div class="g p" style="margin:0"><div class="f" style="flex-wrap:nowrap;align-items:center"><span class="av">${AV[e.avatar_style]||'👤'}</span><div style="flex:1"><b>${esc(e.nama)}</b><div class="mut">${esc(e.nik)}</div></div><button class="btn sm w" onclick="A.empForm('${e.id}')">✏️</button><button class="btn sm no" onclick="A.delEmp('${e.id}')">🗑️</button></div>
- <div class="row"><span class="pill ${e.shift_default==='SHIFT_1'?'g1':''}">${e.shift_default==='SHIFT_1'?'Shift 1':'Shift 2'}</span><span class="mut">PIN ••••••</span></div></div>`).join('')||empty('Tidak ada karyawan. Klik "+ Tambah".')},
+ $('eg').innerHTML=L.map(e=>`<div class="g p" style="margin:0"><div class="f" style="flex-wrap:nowrap;align-items:center"><span class="av">${AV[e.avatar_style]||'👤'}</span><div style="flex:1"><b>${esc(e.nama)}</b><div class="mut">${esc(e.nik)}</div></div>${e.face_descriptor?`<button class="btn sm w" title="Reset wajah" onclick="A.resetFace('${e.id}')">🙂✕</button>`:''}<button class="btn sm w" onclick="A.empForm('${e.id}')">✏️</button><button class="btn sm no" onclick="A.delEmp('${e.id}')">🗑️</button></div>
+ <div class="row"><span class="pill ${e.shift_default==='SHIFT_1'?'g1':''}">${e.shift_default==='SHIFT_1'?'Shift 1':'Shift 2'}</span><span class="mut">${e.face_descriptor?'🙂 Wajah ✓':'⚠️ Belum ada wajah'}</span></div></div>`).join('')||empty('Tidak ada karyawan. Klik "+ Tambah".')},
 empForm(id){const e=id?emp(id):{nama:'',pin_password:'',shift_default:'SHIFT_1',avatar_style:'pria'};
  modal(`<h3>${id?'✏️ Edit':'👤 Tambah'} Karyawan</h3><form onsubmit="A.saveEmp(event,'${id||''}')"><label>Nama Lengkap</label><input class="in" id="fe-n" required value="${esc(e.nama)}">
  <div class="two"><div><label>PIN (min. 4 angka)</label><input class="in" id="fe-p" inputmode="numeric" pattern="[0-9]{4,}" required value="${esc(e.pin_password)}"></div>
@@ -219,12 +258,14 @@ rep(){if($('rf-s')){S.f.s=$('rf-s').value;S.f.e=$('rf-e').value;S.f.emp=isA()?$(
  const R=repRows(),H=R.filter(l=>l.shift_kode!=='IZIN'),tot=H.reduce((a,l)=>a+(l.durasi_menit||0),0),late=H.reduce((a,l)=>a+(l.menit_terlambat||0),0);
  const c=(l,v)=>`<div class="g card" style="padding:12px"><div><small>${l}</small><b style="font-size:18px">${v}</b></div></div>`;
  $('rb').innerHTML=`<div class="cards">${c('Total Hadir',H.length+' hari')+c('Total Jam Kerja',dur(tot))+c('Rata-rata/Hari',H.length?dur(Math.round(tot/H.length)):'0j 0m')+c('Total Terlambat',late+' mnt')}</div>
- <div class="g p tw"><table><thead><tr><th>Tanggal</th><th>Nama</th><th>Shift</th><th>Masuk - Pulang</th><th>Durasi</th><th>Status</th></tr></thead><tbody>${R.map(l=>`<tr><td>${esc(l.tanggal)}</td><td><b>${esc(l.nama_karyawan)}</b></td><td>${esc(l.shift_kode)}</td><td>${esc(l.waktu_masuk)} - ${esc(l.waktu_pulang)}</td><td>${dur(l.durasi_menit||0)}</td><td>${stPill(l.status_kehadiran)}</td></tr>`).join('')||`<tr><td colspan="6">${empty('Tidak ada data pada rentang ini.')}</td></tr>`}</tbody></table></div>`},
+ <div class="g p tw"><table><thead><tr><th>Tanggal</th><th>Nama</th><th>Shift</th><th>Masuk - Pulang</th><th>Durasi</th><th>Status</th></tr></thead><tbody>${R.map(l=>`<tr><td>${esc(l.tanggal)}</td><td><b>${esc(l.nama_karyawan)}</b></td><td>${esc(l.shift_kode)}</td><td>${esc(l.waktu_masuk)} - ${esc(l.waktu_pulang)}</td><td>${dur(l.durasi_menit||0)}</td><td>${stPill(l.status_kehadiran)}<div class="mut">${l.jarak_meter!=null?'📍'+l.jarak_meter+' m':''} ${l.skor_wajah!=null?'🙂'+l.skor_wajah+'%':''}</div></td></tr>`).join('')||`<tr><td colspan="6">${empty('Tidak ada data pada rentang ini.')}</td></tr>`}</tbody></table></div>`},
 csv(){csvDown(repRows(),'Rekap_Absensi')},
 cfgForm(){const c=S.cfg,t=(i,l,v)=>`<div><label>${l}</label><input class="in" type="time" id="${i}" value="${v}"></div>`,n=(i,l,v)=>`<div><label>${l}</label><input class="in" type="number" step="0.5" id="${i}" value="${v}"></div>`;
  modal(`<h3>⏰ Jam Kerja 2 Shift</h3><form onsubmit="A.saveCfg(event)"><div class="two">${t('c1i','Shift 1 Masuk',c.shift1_in)+t('c1o','Shift 1 Pulang',c.shift1_out)+t('c2i','Shift 2 Masuk',c.shift2_in)+t('c2o','Shift 2 Pulang',c.shift2_out)}</div>
- <div class="two">${n('ct','Toleransi (mnt)',c.toleransi_menit)+n('cj','Target Jam/Hari',c.target_jam)}</div><div class="f" style="margin-top:14px"><button class="btn ok" style="flex:1">✓ Simpan</button><button type="button" class="btn w" onclick="A.close()">Batal</button></div></form>`)},
-async saveCfg(ev){ev.preventDefault();const c={shift1_in:$('c1i').value,shift1_out:$('c1o').value,shift2_in:$('c2i').value,shift2_out:$('c2o').value,toleransi_menit:+$('ct').value||0,target_jam:+$('cj').value||8,radius_gps:S.cfg.radius_gps};
+ <div class="two">${n('ct','Toleransi (mnt)',c.toleransi_menit)+n('cj','Target Jam/Hari',c.target_jam)}</div>
+ <h4 style="margin:14px 0 0">📍 Lokasi Kantor</h4><div class="two"><div><label>Latitude</label><input class="in" id="cla" type="number" step="any" value="${c.office_lat??''}"></div><div><label>Longitude</label><input class="in" id="clo" type="number" step="any" value="${c.office_lng??''}"></div></div>
+ <div class="two"><div><label>Radius (meter)</label><input class="in" id="cr" type="number" value="${c.radius_gps||100}"></div><div style="display:flex;align-items:flex-end"><button type="button" class="btn w" style="width:100%" onclick="A.useMyLoc()">📍 Pakai Lokasi Saya</button></div></div><div class="f" style="margin-top:14px"><button class="btn ok" style="flex:1">✓ Simpan</button><button type="button" class="btn w" onclick="A.close()">Batal</button></div></form>`)},
+async saveCfg(ev){ev.preventDefault();const c={shift1_in:$('c1i').value,shift1_out:$('c1o').value,shift2_in:$('c2i').value,shift2_out:$('c2o').value,toleransi_menit:+$('ct').value||0,target_jam:+$('cj').value||8,radius_gps:+$('cr').value||100,office_lat:$('cla').value===''?null:+$('cla').value,office_lng:$('clo').value===''?null:+$('clo').value};
  try{await D.saveCfg(c);S.cfg=c;close();render();toast('Jam shift tersimpan')}catch(e){err(e)}},
 purgeForm(){modal(`<h3>🧹 Kosongkan Transaksi</h3><p class="mut">Hanya menghapus log absensi & izin. Data karyawan tetap aman.</p>
  <label>Mode</label><select class="in" id="pm"><option value="3">Lebih lama dari 3 bulan</option><option value="6">Lebih lama dari 6 bulan</option><option value="0">Semua log absensi & izin</option></select>

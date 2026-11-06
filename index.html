@@ -49,6 +49,11 @@ label{display:block;font-weight:700;font-size:11px;margin:10px 0 4px;color:#4338
 #prev{background:#fef3c7;padding:6px 12px;font-weight:700;font-size:11px;display:none;flex-wrap:wrap;gap:6px;align-items:center}
 .tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:rgba(99,102,241,.1);padding:4px;border-radius:14px;margin-bottom:8px}
 .tabs button{border:0;padding:8px;border-radius:11px;font-weight:800;background:none;cursor:pointer}.tabs .on{background:#fff}
+#ovl{display:none;position:fixed;inset:0;z-index:30;align-items:center;justify-content:center;text-align:center;color:#fff;padding:20px;cursor:pointer}
+#ovl.in{background:linear-gradient(135deg,#047857,#10b981)}#ovl.out{background:linear-gradient(135deg,#4338ca,#7c3aed)}#ovl.err{background:linear-gradient(135deg,#be123c,#f43f5e)}
+#ovl .oi{font-size:110px;line-height:1;animation:pop .5s}#ovl .ot{font-size:32px;font-weight:800;margin-top:8px}#ovl .os{font-size:24px;font-weight:700;margin-top:6px}
+#ovl .oc{font-size:20px;font-weight:800;background:rgba(255,255,255,.2);border-radius:18px;padding:12px 18px;margin-top:16px;line-height:1.7}#ovl .od{margin-top:18px;opacity:.85;font-size:12px}
+@keyframes pop{0%{transform:scale(.3);opacity:0}70%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
 </style></head>
 <body><div id="app">
 <div id="prev"><span>🧪 MODE PREVIEW AKTIF (data hanya di memori)</span>
@@ -67,7 +72,7 @@ label{display:block;font-weight:700;font-size:11px;margin:10px 0 4px;color:#4338
 
 <div id="shell"><aside id="side"></aside><div id="col"><header id="hdr" class="g" style="margin:10px 18px 6px"></header><div id="main"></div></div></div>
 <nav id="bot" class="g"></nav>
-<div id="md"><div class="g" id="mdc"></div></div><div id="toast"></div>
+<div id="md"><div class="g" id="mdc"></div></div><div id="toast"></div><div id="ovl" onclick="this.style.display='none'"></div>
 </div>
 <script>
 (()=>{
@@ -138,11 +143,13 @@ scan(){const t=ymd(new Date()),L=S.logs.filter(l=>l.tanggal===t&&(isA()||l.karya
   return `<div class="g p"><h3>Terminal Absensi (Admin)</h3><p class="mut">Check-in/out manual oleh admin & pendaftaran wajah. ⚠️ = wajah belum terdaftar. Karyawan absen mandiri lewat HP masing-masing (wajah + lokasi).</p>
  <div class="two"><div><label>Karyawan</label><select class="in" id="sc-emp" onchange="A.scDef()">${o}</select></div><div><label>Shift</label><select class="in" id="sc-shift"><option value="SHIFT_1">${shLbl('SHIFT_1')}</option><option value="SHIFT_2">${shLbl('SHIFT_2')}</option></select></div></div>${cam}
  <div class="f" style="margin-top:8px;justify-content:center"><button class="btn ok" style="flex:0" onclick="A.scan('IN')">📥 Check-In</button><button class="btn" style="flex:0" onclick="A.scan('OUT')">📤 Check-Out</button><button class="btn w" style="flex:0" onclick="A.enrollSel()">🙂 Daftar / Ulang Wajah</button></div></div>`+logs}
- const me=emp(S.me),sh=me?.jadwal_minggu?.[todayIdx()]||'LIBUR',lok=S.cfg.office_lat!=null;
- return `<div class="g p"><h3>Absensi Wajah & Lokasi</h3><p class="mut">Jadwal hari ini: <b>${shLbl(sh)}</b> • Radius kantor ${S.cfg.radius_gps} m ${lok?'':'• ⚠️ Admin belum mengatur lokasi kantor'}</p>${cam}
- <div id="gst" class="mut" style="text-align:center">📍 Lokasi: belum dicek</div>
- <div class="f" style="margin-top:12px;justify-content:center">${me?.face_descriptor?'':'<button class="btn" style="flex:0" onclick="A.enroll(\''+S.me+'\')">🙂 Daftarkan Wajah Saya</button>'}<button class="btn ok" style="flex:0" onclick="A.selfPunch('IN')">📥 Check-In</button><button class="btn" style="flex:0" onclick="A.selfPunch('OUT')">📤 Check-Out</button></div>
- <p class="mut" style="text-align:center">${me?.face_descriptor?'🙂 Wajah sudah terdaftar':'⚠️ Daftarkan wajah dulu sebelum absen'}</p></div>`+logs},
+ const me=emp(S.me),sh=me?.jadwal_minggu?.[todayIdx()]||'LIBUR',lok=S.cfg.office_lat!=null,T=L.filter(l=>l.shift_kode!=='IZIN'),op=T.find(l=>l.waktu_pulang==='-'),dn=!op&&T.length>0,ready=me?.face_descriptor||P;
+ const stat=op?`🟢 Masuk ${esc(op.waktu_masuk)} • belum pulang`:dn?`✅ Masuk ${esc(T[0].waktu_masuk)} • Pulang ${esc(T[0].waktu_pulang)}`:'⚪ Belum absen hari ini';
+ const big=(c,t,f)=>`<button class="btn ${c}" style="width:100%;padding:24px 10px;font-size:22px;border-radius:22px;margin-top:10px" onclick="${f}">${t}</button>`;
+ return `<div class="g p" style="text-align:center"><h3 style="font-size:17px">Halo, ${esc(me?.nama||'')} 👋</h3><p class="mut">Jadwal hari ini: <b>${shLbl(sh)}</b></p><div style="font-size:16px;font-weight:800;margin:6px 0">${stat}</div>${cam}
+ <div id="gst" class="mut">📍 Lokasi akan dicek otomatis</div>
+ ${!ready?big('','🙂 DAFTARKAN WAJAH DULU',"A.enroll('"+S.me+"')"):dn?'<div class="pill g1" style="font-size:15px;padding:12px 18px;margin-top:10px">Absensi hari ini selesai 🎉</div>':op?big('','📤 ABSEN PULANG','A.selfPunch()'):big('ok','📥 ABSEN MASUK','A.selfPunch()')}
+ <p class="mut">${lok?'':'⚠️ Admin belum mengatur lokasi kantor • '}Cukup 1 ketukan: lokasi & wajah dicek otomatis</p></div>`+logs},
 emps(){return `<div class="g p f"><div><h3>Data Karyawan</h3><span class="mut">Tersimpan permanen di database</span></div><div><input class="in" id="es" placeholder="Cari nama / NIK..." oninput="A.grid()"></div><button class="btn" style="flex:0" onclick="A.empForm()">+ Tambah</button></div><div class="grid" id="eg"></div>`},
 sched(){const list=isA()?S.emps:S.emps.filter(e=>e.id===S.me);
  return `<div class="g p f"><div><h3>Jadwal Roster Mingguan</h3><span class="mut">${isA()?'Klik tombol shift untuk mengganti (otomatis tersimpan)':'Jadwal Anda (baca saja)'}</span></div>${isA()?'<button class="btn ok" style="flex:0" onclick="A.rotate()">🔄 Tukar Shift</button>':''}</div>
@@ -158,7 +165,7 @@ leave(){const o=(isA()?S.emps:S.emps.filter(e=>e.id===S.me)).map(e=>`<option val
 rep(){const o=isA()?'<option value="ALL">Semua Karyawan</option>'+S.emps.map(e=>`<option value="${e.id}" ${S.f.emp===e.id?'selected':''}>${esc(e.nama)}</option>`).join(''):`<option value="${S.me}">Rekap Pribadi</option>`;
  return `<div class="g p"><h3>Rekap Jam Kerja</h3><div class="f"><div><label>Dari</label><input type="date" class="in" id="rf-s" value="${S.f.s}" onchange="A.rep()"></div><div><label>Sampai</label><input type="date" class="in" id="rf-e" value="${S.f.e}" onchange="A.rep()"></div><div><label>Karyawan</label><select class="in" id="rf-m" onchange="A.rep()" ${isA()?'':'disabled'}>${o}</select></div><button class="btn ok" style="flex:0" onclick="A.csv()">📥 CSV</button></div></div><div id="rb"></div>`}
 };
-const AFTER={emps:()=>A.grid(),rep:()=>A.rep(),scan:()=>A.scDef()};
+const AFTER={emps:()=>A.grid(),rep:()=>A.rep(),scan:()=>{A.scDef();if(!isA()&&!P&&window.faceapi)faceLoad().catch(()=>{})}};
 
 function render(){
  camOff();
@@ -190,13 +197,24 @@ async function faceGrab(n=8){for(let i=0;i<n;i++){const r=await faceapi.detectSi
 const fdist=(a,b)=>Math.sqrt(a.reduce((q,x,i)=>q+(x-b[i])**2,0));
 const geo=()=>new Promise((ok,no)=>{if(!navigator.geolocation)return no(new Error('Browser tidak mendukung GPS'));navigator.geolocation.getCurrentPosition(p=>ok(p.coords),e=>no(new Error(e.code===1?'Izin lokasi ditolak. Aktifkan lokasi untuk situs ini.':'Gagal membaca lokasi, coba di area terbuka')),{enableHighAccuracy:true,timeout:15000,maximumAge:0})});
 const dist=(a,b,c,d)=>{const r=x=>x*Math.PI/180,h=Math.sin(r(c-a)/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(r(d-b)/2)**2;return 2*6371000*Math.asin(Math.sqrt(h))};
-async function punch(id,sh,mode,meta){const e=emp(id);if(!e)return toast('Pilih karyawan dulu');
+let AC=null;
+function unlockAudio(){try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume()}catch(_){}}
+function beep(q){try{unlockAudio();let t=AC.currentTime;q.forEach(([f,d,y])=>{const o=AC.createOscillator(),g=AC.createGain();o.type=y||'sine';o.frequency.value=f;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.6,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d+.03);t+=d})}catch(_){}}
+function say(m){try{if(!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(m);u.lang='id-ID';speechSynthesis.speak(u)}catch(_){}}
+const SND={in:[[660,.14],[880,.14],[1320,.3]],out:[[1320,.14],[880,.14],[660,.3]],err:[[220,.25,'square'],[170,.4,'square']]};
+function ovl(k,title,sub,info,voice){const o=$('ovl');o.className=k;o.innerHTML=`<div><div class="oi">${k==='err'?'❌':k==='out'?'👋':'✅'}</div><div class="ot">${esc(title)}</div><div class="os">${esc(sub)}</div>${info?`<div class="oc">${info}</div>`:''}<div class="od">Ketuk layar untuk menutup</div></div>`;o.style.display='flex';
+ beep(SND[k]);setTimeout(()=>say(voice),k==='err'?500:700);try{navigator.vibrate&&navigator.vibrate(k==='err'?[200,100,200]:[150])}catch(_){}clearTimeout(ovl.k);ovl.k=setTimeout(()=>o.style.display='none',8000)}
+const fail=m=>{ovl('err','ABSEN GAGAL',m,'','Absen gagal. '+m);return null};
+const failx=e=>{console.error(e);return fail(e.message||String(e))};
+async function punch(id,sh,mode,meta){const e=emp(id);if(!e)return fail('Pilih karyawan dulu');
  const now=new Date(),t=ymd(now),w=hm(now),open=S.logs.find(l=>l.karyawan_id===id&&l.tanggal===t&&l.shift_kode!=='IZIN'&&l.waktu_pulang==='-');
- try{if(mode==='IN'){if(open)return toast('Sudah check-in & belum check-out');
+ try{if(mode==='IN'){if(open)return fail('Sudah check-in dan belum check-out');
   const late=Math.max(0,mins(w)-mins(sh==='SHIFT_1'?S.cfg.shift1_in:S.cfg.shift2_in)),tl=late>S.cfg.toleransi_menit?late:0;
-  await D.ins('absensi',{karyawan_id:id,nama_karyawan:e.nama,tanggal:t,shift_kode:sh,waktu_masuk:w,waktu_pulang:'-',durasi_menit:0,menit_terlambat:tl,status_kehadiran:tl?'Terlambat':'Tepat Waktu',...meta});toast('Check-in '+e.nama+' '+w+(tl?' (terlambat '+tl+' mnt)':''))}
- else{if(!open)return toast('Belum ada check-in aktif hari ini');let d=mins(w)-mins(open.waktu_masuk);if(d<0)d+=1440;await D.upd('absensi',open.id,{waktu_pulang:w,durasi_menit:d});toast('Check-out '+e.nama+' ('+dur(d)+')')}
- await refresh()}catch(x){err(x)}}
+  await D.ins('absensi',{karyawan_id:id,nama_karyawan:e.nama,tanggal:t,shift_kode:sh,waktu_masuk:w,waktu_pulang:'-',durasi_menit:0,menit_terlambat:tl,status_kehadiran:tl?'Terlambat':'Tepat Waktu',...meta});
+  ovl('in','CHECK-IN BERHASIL',e.nama,`🕒 Jam ${w}<br>${tl?'⏰ Terlambat '+tl+' menit':'👍 Tepat waktu'}${meta.jarak_meter?'<br>📍 '+meta.jarak_meter+' m dari kantor':''}`,'Check in berhasil. '+(tl?'Anda terlambat '+tl+' menit.':'Selamat bekerja')+' '+e.nama)}
+ else{if(!open)return fail('Belum ada check-in aktif hari ini');let d=mins(w)-mins(open.waktu_masuk);if(d<0)d+=1440;await D.upd('absensi',open.id,{waktu_pulang:w,durasi_menit:d});
+  ovl('out','CHECK-OUT BERHASIL',e.nama,`🕒 Jam ${w}<br>⏱️ Bekerja ${dur(d)}`,'Check out berhasil. Terima kasih, hati hati di jalan '+e.nama)}
+ await refresh()}catch(x){failx(x)}}
 
 // ===== AKSI =====
 const A=window.A={
@@ -211,20 +229,22 @@ async quick(r){S.role=r;S.me=r==='STAFF'?'p1':null;S.view='dash';await loadData(
 async logout(){try{if(!P&&isA())await db.auth.signOut()}catch(_){}try{localStorage.removeItem('sc_me')}catch(_){}S.role=null;S.me=null;render()},
 scDef(){const e=emp($('sc-emp')?.value);if(e&&$('sc-shift'))$('sc-shift').value=e.jadwal_minggu?.[todayIdx()]==='SHIFT_2'?'SHIFT_2':e.jadwal_minggu?.[todayIdx()]==='SHIFT_1'?'SHIFT_1':e.shift_default},
 async scan(mode){await punch($('sc-emp').value,$('sc-shift').value,mode,{status_lokasi:'Terminal Admin',skor_wajah:null,jarak_meter:null,lat:null,lng:null});A.scDef()},
-async selfPunch(mode){const me=emp(S.me);if(!me)return;const sh=me.jadwal_minggu?.[todayIdx()];if(sh!=='SHIFT_1'&&sh!=='SHIFT_2')return toast('Hari ini jadwal Anda Libur');
+async selfPunch(){unlockAudio();const me=emp(S.me);if(!me)return;const sh=me.jadwal_minggu?.[todayIdx()];if(sh!=='SHIFT_1'&&sh!=='SHIFT_2')return fail('Hari ini jadwal Anda Libur');
+ const t=ymd(new Date()),T=S.logs.filter(l=>l.karyawan_id===me.id&&l.tanggal===t&&l.shift_kode!=='IZIN'),op=T.find(l=>l.waktu_pulang==='-');
+ if(!op&&T.length)return fail('Anda sudah absen masuk dan pulang hari ini');
  let meta={status_lokasi:'Simulasi Preview',skor_wajah:99,jarak_meter:0,lat:null,lng:null};
- if(!P){try{const c=S.cfg;if(c.office_lat==null||c.office_lng==null)return toast('Admin belum mengatur lokasi kantor');if(!me.face_descriptor)return toast('Daftarkan wajah Anda dulu');
+ if(!P){try{const c=S.cfg;if(c.office_lat==null||c.office_lng==null)return fail('Admin belum mengatur lokasi kantor');if(!me.face_descriptor)return fail('Daftarkan wajah Anda dulu');
   geoSt('📍 Membaca lokasi...');const g=await geo(),d=Math.round(dist(g.latitude,g.longitude,+c.office_lat,+c.office_lng));
   geoSt('📍 Jarak ke kantor '+d+' m (maks '+c.radius_gps+' m) • akurasi ±'+Math.round(g.accuracy)+' m');
-  if(g.accuracy>150)return toast('Akurasi GPS terlalu rendah, coba di area terbuka');if(d>c.radius_gps)return toast('Di luar radius kantor ('+d+' m)');
-  camSt('Memuat model wajah...');await faceLoad();await camOn();camSt('Tatap kamera...');const f=await faceGrab();if(!f){camSt('Wajah tidak terdeteksi');return toast('Wajah tidak terdeteksi, coba lagi')}
-  const dd=fdist(f,me.face_descriptor),sk=Math.max(0,Math.round((1-dd)*100));if(dd>FACE_T){camSt('❌ Wajah tidak cocok');return toast('Wajah tidak cocok ('+sk+'%)')}
-  camSt('✅ Wajah cocok '+sk+'%');meta={status_lokasi:'Di Kantor (Valid)',skor_wajah:sk,jarak_meter:d,lat:g.latitude,lng:g.longitude}}catch(x){return err(x)}}
- await punch(me.id,sh,mode,meta)},
+  if(g.accuracy>150)return fail('Sinyal GPS lemah, coba di area terbuka');if(d>c.radius_gps)return fail('Anda di luar area kantor ('+d+' m dari kantor)');
+  camSt('Memuat model wajah...');await faceLoad();await camOn();camSt('Tatap kamera...');const f=await faceGrab();if(!f){camSt('Wajah tidak terdeteksi');return fail('Wajah tidak terdeteksi, coba lagi')}
+  const dd=fdist(f,me.face_descriptor),sk=Math.max(0,Math.round((1-dd)*100));if(dd>FACE_T){camSt('❌ Wajah tidak cocok');return fail('Wajah tidak cocok')}
+  camSt('✅ Wajah cocok '+sk+'%');meta={status_lokasi:'Di Kantor (Valid)',skor_wajah:sk,jarak_meter:d,lat:g.latitude,lng:g.longitude}}catch(x){return failx(x)}}
+ await punch(me.id,sh,op?'OUT':'IN',meta)},
 async enroll(id){const e=emp(id);if(!e)return;if(!isA()&&e.face_descriptor)return toast('Wajah sudah terdaftar. Minta Admin untuk mereset.');
  try{camSt('Memuat model wajah...');await faceLoad();await camOn();camSt('Tatap kamera, jangan bergerak...');const sm=[];
   for(let i=0;i<3;i++){const d=await faceGrab();if(!d){camSt('Wajah tidak terdeteksi');return toast('Wajah tidak terdeteksi. Pastikan cahaya cukup.')}sm.push(d);await sleep(500)}
-  await D.upd('karyawan',id,{face_descriptor:sm[0].map((_,i)=>sm.reduce((a,x)=>a+x[i],0)/sm.length)});toast('Wajah '+e.nama+' berhasil didaftarkan');await refresh()}catch(x){err(x)}},
+  await D.upd('karyawan',id,{face_descriptor:sm[0].map((_,i)=>sm.reduce((a,x)=>a+x[i],0)/sm.length)});ovl('in','WAJAH TERDAFTAR',e.nama,'Sekarang bisa absen dengan 1 ketukan','Wajah berhasil didaftarkan');await refresh()}catch(x){failx(x)}},
 enrollSel(){A.enroll($('sc-emp').value)},
 async resetFace(id){const e=emp(id);if(!e||!confirm('Reset data wajah '+e.nama+'? Karyawan harus mendaftar ulang.'))return;try{await D.upd('karyawan',id,{face_descriptor:null});toast('Wajah direset');await refresh()}catch(x){err(x)}},
 async useMyLoc(){try{const g=await geo();$('cla').value=g.latitude.toFixed(6);$('clo').value=g.longitude.toFixed(6);toast('Lokasi terisi (akurasi ±'+Math.round(g.accuracy)+' m). Berdirilah di kantor saat melakukan ini.')}catch(x){err(x)}},

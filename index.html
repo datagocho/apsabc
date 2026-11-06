@@ -25,7 +25,7 @@ html,body{margin:0;height:100%}
 #hdr h2{margin:0;font-size:16px}
 #main{flex:1;overflow:auto;padding:6px 18px 90px}
 #bot{display:none;position:fixed;left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom,0px));padding:6px;justify-content:space-around;z-index:5}
-#bot .nb{flex-direction:column;gap:0;font-size:10px;padding:6px 8px;width:auto;border-radius:12px}
+#bot .nb{flex-direction:column;gap:0;font-size:10px;padding:6px 4px;width:auto;border-radius:12px}
 @media(max-width:1023px){#side{display:none}#bot{display:flex}#hdr{padding-top:calc(12px + env(safe-area-inset-top,0px))}}
 .btn{border:0;border-radius:14px;padding:9px 14px;font-weight:800;font-size:12px;cursor:pointer;color:#fff;background:linear-gradient(90deg,#7c3aed,#4f46e5)}
 .btn.ok{background:#059669}.btn.no{background:#e11d48}.btn.w{background:#fff;color:#1e1b4b;border:1px solid #ddd}.btn.sm{padding:5px 9px;font-size:11px}
@@ -60,7 +60,7 @@ label{display:block;font-weight:700;font-size:11px;margin:10px 0 4px;color:#4338
 
 
 #toast{display:none;position:fixed;right:14px;bottom:90px;background:#1a0b2e;color:#fff;padding:11px 16px;border-radius:14px;font-weight:700;z-index:20;max-width:80vw}
-#prev{background:#fef3c7;padding:6px 12px;font-weight:700;font-size:11px;display:none;flex-wrap:wrap;gap:6px;align-items:center}
+#prev{position:relative;z-index:50;background:#fef3c7;padding:6px 12px;font-weight:700;font-size:11px;display:none;flex-wrap:wrap;gap:6px;align-items:center}
 .tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:rgba(99,102,241,.1);padding:4px;border-radius:14px;margin-bottom:8px}
 .tabs button{border:0;padding:8px;border-radius:11px;font-weight:800;background:none;cursor:pointer}.tabs .on{background:#fff}
 #ovl{display:none;position:fixed;inset:0;z-index:30;align-items:center;justify-content:center;text-align:center;color:#fff;padding:20px;cursor:pointer}
@@ -101,7 +101,7 @@ const AV={pria:'👨',wanita:'👩',hijab:'🧕'};
 const DAYS=['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'];
 const DEF={shift1_in:'07:00',shift1_out:'15:00',shift2_in:'15:00',shift2_out:'23:00',toleransi_menit:15,target_jam:8,radius_gps:100,office_lat:null,office_lng:null};
 let db=null;if(!P){try{db=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY)}catch(e){console.error(e)}}
-const S={role:null,me:null,view:'dash',emps:[],logs:[],leaves:[],cfg:{...DEF},f:{s:ymd(new Date(new Date().getFullYear(),new Date().getMonth(),1)),e:ymd(new Date()),emp:'ALL'}};
+const S={role:null,me:null,view:'dash',tm:ymd(new Date()).slice(0,7),tl:[],nc:null,emps:[],logs:[],leaves:[],cfg:{...DEF},f:{s:ymd(new Date(new Date().getFullYear(),new Date().getMonth(),1)),e:ymd(new Date()),emp:'ALL'}};
 
 // ===== PREVIEW: data minimalis di memori =====
 const M={karyawan:[{id:'p1',nik:'EMP-001',nama:'Bella Putri',pin_password:'123456',shift_default:'SHIFT_1',avatar_style:'wanita',tanggal_bergabung:ymd(new Date()),jadwal_minggu:['SHIFT_1','SHIFT_1','SHIFT_1','SHIFT_1','SHIFT_1','LIBUR','LIBUR']},{id:'p2',nik:'EMP-002',nama:'Rizky Pratama',pin_password:'123456',shift_default:'SHIFT_2',avatar_style:'pria',tanggal_bergabung:ymd(new Date()),jadwal_minggu:['SHIFT_2','SHIFT_2','SHIFT_2','SHIFT_2','SHIFT_2','LIBUR','LIBUR']}],
@@ -110,7 +110,9 @@ izin:[{id:'pi1',karyawan_id:'p2',nama_karyawan:'Rizky Pratama',jenis_izin:'Sakit
 
 // ===== LAPISAN DATABASE (Supabase asli / memori saat preview) =====
 const D={
-async list(t,c,v){if(P)return M[t].filter(r=>!c||r[c]===v).map(r=>({...r}));let x=db.from(t).select('*');if(c)x=x.eq(c,v);const r=await x;if(r.error)throw r.error;return r.data},
+async list(t,c,v){if(P)return M[t].filter(r=>!c||r[c]===v).map(r=>({...r}));return D.all(()=>{let x=db.from(t).select('*');if(c)x=x.eq(c,v);return x})},
+async all(mk){let o=[],f=0;for(;;){const r=await mk().order('id').range(f,f+999);if(r.error)throw r.error;o=o.concat(r.data);if(r.data.length<1000)return o;f+=1000}},
+async sel(t,cols,a,b){if(P)return M[t].filter(r=>r.tanggal>=a&&r.tanggal<=b);return D.all(()=>db.from(t).select(cols).gte('tanggal',a).lte('tanggal',b))},
 async ins(t,row){if(P){row={id:'p'+Math.random().toString(36).slice(2),...row};M[t].push(row);return row}const r=await db.from(t).insert(row).select().single();if(r.error)throw r.error;return r.data},
 async upd(t,id,p){if(P){Object.assign(M[t].find(x=>x.id===id),p);return}const r=await db.from(t).update(p).eq('id',id).select();if(r.error)throw r.error;if(!r.data.length)throw new Error('Ditolak oleh RLS / data tidak ditemukan')},
 async del(t,id){if(P){M[t]=M[t].filter(x=>x.id!==id);return}const r=await db.from(t).delete().eq('id',id).select();if(r.error)throw r.error;if(!r.data.length)throw new Error('Ditolak oleh RLS / data tidak ditemukan')},
@@ -136,22 +138,50 @@ async function loadData(){
 async function refresh(){try{await loadData();render()}catch(e){err(e)}}
 
 // ===== TAMPILAN =====
-const NAV=[['dash','📊','Dasbor',0],['scan','📷','Absen',0],['emps','👥','Karyawan',1],['sched','🗓️','Jadwal',0],['leave','🏥','Izin/Sakit',0],['rep','📈','Rekap',0]];
-const TTL={dash:'Dasbor',scan:'Absensi Wajah & Lokasi',emps:'Data Karyawan',sched:'Jadwal 2 Shift',leave:'Pengajuan Izin / Sakit',rep:'Rekap Jam Kerja'};
+const NAV=[['dash','📊','Dasbor',0],['scan','📷','Absen',0],['emps','👥','Karyawan',1],['sched','🗓️','Jadwal',0],['leave','🏥','Izin/Sakit',0],['rep','📈','Rekap',0],['star','🏆','Teladan',0]];
+const TTL={dash:'Dasbor',scan:'Absensi Wajah & Lokasi',emps:'Data Karyawan',sched:'Jadwal 2 Shift',leave:'Pengajuan Izin / Sakit',rep:'Rekap Jam Kerja',star:'Karyawan Teladan'};
 const mapA=l=>l.lat!=null&&l.lng!=null?` <a href="https://www.google.com/maps?q=${l.lat},${l.lng}" target="_blank" rel="noopener" style="color:#4338ca;font-weight:800">🗺️ Peta</a>`:'';
 const locPill=l=>l.jarak_meter!=null?`<div class="mut" style="margin-top:3px">📍 <b>${l.jarak_meter} m</b> dari kantor${l.status_lokasi?' • '+esc(l.status_lokasi):''}${mapA(l)}</div>`:'';
 const thumb=u=>u?`<img src="${esc(u)}" loading="lazy" onclick="A.photo('${esc(u)}')" style="width:46px;height:46px;border-radius:12px;object-fit:cover;cursor:pointer;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.15)">`:'';
 const logRow=l=>`<div class="row"><div style="display:flex;gap:10px;align-items:center">${thumb(l.foto_masuk)}${thumb(l.foto_pulang)}<div><b>${esc(l.nama_karyawan)}</b> <span class="pill">${esc(l.shift_kode)}</span><div class="mut">${esc(l.tanggal)} • ${esc(l.waktu_masuk)} - ${esc(l.waktu_pulang)} • ${dur(l.durasi_menit||0)}${l.skor_wajah!=null?' • 🙂 wajah '+l.skor_wajah+'%':''}</div></div></div><div style="text-align:right">${stPill(l.status_kehadiran)}${locPill(l)}</div></div>`;
 const empty=t=>`<div class="mut" style="padding:14px;text-align:center">${t}</div>`;
 
+function notifData(){const t=ymd(new Date()),nowM=mins(hm(new Date())),C=S.cfg;
+ const late=S.logs.filter(l=>l.tanggal===t&&l.shift_kode!=='IZIN'&&l.menit_terlambat>0),absent=[];
+ S.emps.forEach(e=>{const sh=e.jadwal_minggu?.[todayIdx()];if(sh!=='SHIFT_1'&&sh!=='SHIFT_2')return;const st=mins(sh==='SHIFT_1'?C.shift1_in:C.shift2_in);if(nowM-st<=C.toleransi_menit)return;
+  if(S.logs.some(l=>l.karyawan_id===e.id&&l.tanggal===t))return;if(S.leaves.some(v=>v.karyawan_id===e.id&&v.status_approval==='Disetujui'&&v.tanggal_mulai<=t&&t<=v.tanggal_selesai))return;
+  absent.push({e,sh,over:nowM-st,end:nowM>mins(sh==='SHIFT_1'?C.shift1_out:C.shift2_out)})});
+ const pend=S.leaves.filter(v=>v.status_approval==='Menunggu');return{late,absent,pend,n:late.length+absent.length+pend.length}}
+function notif(){const d=notifData(),tag=(ic,t,n)=>`<div style="font-weight:800;margin-top:14px">${ic} ${t} <span class="pill ${n?'r':'g1'}">${n}</span></div>`;
+ let h=`<div class="g p" style="${d.n?'border-color:#fda4af;':''}"><h3>🔔 Notifikasi ${d.n?`<span class="pill r">${d.n}</span>`:''}</h3>`;
+ if(isA()){
+  h+=tag('⏰','Karyawan Terlambat Hari Ini',d.late.length)+(d.late.map(l=>`<div class="row"><div style="display:flex;gap:10px;align-items:center">${thumb(l.foto_masuk)}<div><b>${esc(l.nama_karyawan)}</b><div class="mut">Masuk ${esc(l.waktu_masuk)} • ${shLbl(l.shift_kode)}</div></div></div><span class="pill y">⏰ Telat ${l.menit_terlambat} mnt</span></div>`).join('')||empty('Tidak ada yang terlambat 👍'));
+  h+=tag('❗','Belum Absen (Lewat Jam Masuk)',d.absent.length)+(d.absent.map(x=>`<div class="row"><div><b>${esc(x.e.nama)}</b><div class="mut">${shLbl(x.sh)} • ${x.end?'shift sudah selesai':'belum absen'}</div></div><span class="pill r">❗ ${x.over} mnt lewat jam masuk</span></div>`).join('')||empty('Semua karyawan terjadwal sudah absen ✅'));
+  h+=tag('📋','Pengajuan Izin/Sakit Menunggu',d.pend.length)+(d.pend.map(v=>`<div class="row"><div><b>${esc(v.nama_karyawan)}</b> <span class="pill">${esc(v.jenis_izin)}</span><div class="mut">${esc(v.tanggal_mulai)} s.d. ${esc(v.tanggal_selesai)} (${v.jumlah_hari} hr) • ${esc(v.alasan)}</div></div><div><button class="btn ok sm" onclick="A.appr('${v.id}',1)">✓ Setujui</button> <button class="btn no sm" onclick="A.appr('${v.id}',0)">✕ Tolak</button></div></div>`).join('')||empty('Tidak ada pengajuan baru'))}
+ else{const x=d.absent[0],mine=d.late[0];
+  if(x)h+=`<div class="row" style="background:#ffe4e6"><div><b>❗ Anda belum absen hari ini!</b><div class="mut">${shLbl(x.sh)} • sudah lewat ${x.over} menit dari jam masuk</div></div><button class="btn no sm" onclick="A.go('scan')">📷 Absen Sekarang</button></div>`;
+  if(mine)h+=`<div class="row" style="background:#fef3c7"><b>⏰ Hari ini Anda terlambat ${mine.menit_terlambat} menit</b></div>`;
+  h+=tag('📋','Status Pengajuan Saya',S.leaves.length)+(S.leaves.slice(0,3).map(v=>`<div class="row"><div><span class="pill">${esc(v.jenis_izin)}</span> <span class="mut">${esc(v.tanggal_mulai)} s.d. ${esc(v.tanggal_selesai)}</span></div><span class="pill ${v.status_approval==='Disetujui'?'g1':v.status_approval==='Ditolak'?'r':'y'}">${esc(v.status_approval)}</span></div>`).join('')||empty('Belum ada pengajuan'))+`<div style="margin-top:10px"><button class="btn sm" onclick="A.go('leave')">+ Ajukan Izin / Sakit</button></div>`}
+ return h+'</div>'}
+function starData(){const m={};(isA()?S.logs:S.tl).filter(l=>l.shift_kode!=='IZIN'&&String(l.tanggal).startsWith(S.tm)).forEach(l=>{const o=m[l.karyawan_id]||(m[l.karyawan_id]={id:l.karyawan_id,nama:l.nama_karyawan,h:0,on:0,lt:0,lm:0,mn:0});o.h++;if((l.menit_terlambat||0)>0){o.lt++;o.lm+=l.menit_terlambat}else o.on++;o.mn+=l.durasi_menit||0});
+ return Object.values(m).map(o=>{o.bonus=o.lt===0&&o.h>=5?20:0;o.sk=o.on*10+o.lt*5-Math.floor(o.lm/10)+o.bonus;const r=o.on/o.h;o.st=r>=.95?5:r>=.85?4:r>=.7?3:r>=.5?2:1;return o}).sort((a,b)=>b.sk-a.sk||a.lm-b.lm||b.mn-a.mn)}
+function starBody(){const R=starData();if(!R.length)return `<div class="g p">${empty('Belum ada data absensi pada bulan ini.')}</div>`;
+ const stars=n=>'⭐'.repeat(n)+'<span style="opacity:.25">'+'⭐'.repeat(5-n)+'</span>',bln=new Date(S.tm+'-01T00:00:00').toLocaleDateString('id-ID',{month:'long',year:'numeric'}),top=R.slice().sort((a,b)=>b.mn-a.mn)[0];
+ const pod=(o,k)=>{if(!o)return'<div></div>';const b=k===1;return `<div class="g" style="padding:${b?'26px 10px':'16px 8px'};text-align:center;${b?'background:linear-gradient(160deg,#fde68a,#fff7d6);border-color:#f59e0b;transform:translateY(-8px);':''}"><div style="font-size:${b?56:36}px;line-height:1.1">${k===1?'🏆':k===2?'🥈':'🥉'}</div><div style="font-weight:800;font-size:${b?15:12}px;margin-top:6px;word-break:break-word">${esc(o.nama)}</div><div style="font-size:${b?14:11}px;margin:4px 0">${stars(o.st)}</div><span class="pill ${b?'y':''}">Skor ${o.sk}</span>${o.bonus?'<div style="margin-top:6px;font-size:18px">🎁</div>':''}</div>`};
+ const c2=(i,l,v)=>`<div class="g card"><span>${i}</span><div><small>${l}</small><b style="font-size:15px">${v}</b></div></div>`;
+ return `<div class="g p" style="text-align:center">🎉 Selamat kepada <b>${esc(R[0].nama)}</b>, Karyawan Teladan ${bln}! 🏆🎁⭐</div>
+ <div style="display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:10px;align-items:end;margin:18px 0 16px">${pod(R[1],2)+pod(R[0],1)+pod(R[2],3)}</div>
+ <div class="cards">${c2('🏆','Karyawan Teladan',esc(R[0].nama))+c2('🎁','Tanpa Terlambat',R.filter(o=>o.bonus).length+' orang')+c2('💪','Jam Kerja Terbanyak',esc(top.nama)+' • '+dur(top.mn))}</div>
+ <div class="g p"><h3>Peringkat ${bln}</h3>${R.map((o,i)=>`<div class="row"><div style="display:flex;gap:10px;align-items:center"><b style="width:28px;text-align:center;font-size:17px">${i<3?['🥇','🥈','🥉'][i]:i+1}</b><div><b>${esc(o.nama)}</b>${o.id===S.me?' <span class="pill">Anda</span>':''}<div class="mut">Hadir ${o.h} hr • Tepat ${o.on} • Telat ${o.lt} (${o.lm} mnt) • ${dur(o.mn)}</div></div></div><div style="text-align:right"><div style="font-size:12px">${stars(o.st)}</div><b>${o.sk} poin</b>${o.bonus?' 🎁':''}${i===0?' 🏆':''}</div></div>`).join('')}</div>`}
+
 const V={
 dash(){const t=ymd(new Date()),ym=t.slice(0,7),card=(i,l,v)=>`<div class="g card"><span>${i}</span><div><small>${l}</small><b>${v}</b></div></div>`;
  if(isA()){const L=S.logs.filter(l=>l.tanggal===t&&l.shift_kode!=='IZIN'),n1=S.emps.filter(e=>e.shift_default==='SHIFT_1').length;
-  return `<div class="cards">${card('👥','Total Karyawan',S.emps.length)+card('✅','Hadir Hari Ini',L.length)+card('⏰','Terlambat Hari Ini',L.filter(l=>l.menit_terlambat>0).length)+card('🏥','Izin Menunggu',S.leaves.filter(v=>v.status_approval==='Menunggu').length)}</div>
+  return notif()+`<div class="cards">${card('👥','Total Karyawan',S.emps.length)+card('✅','Hadir Hari Ini',L.length)+card('⏰','Terlambat Hari Ini',L.filter(l=>l.menit_terlambat>0).length)+card('🏥','Izin Menunggu',S.leaves.filter(v=>v.status_approval==='Menunggu').length)}</div>
   <div class="g p"><h3>Komposisi Shift</h3><div class="row"><span>${shLbl('SHIFT_1')}</span><b>${n1} staf</b></div><div class="row"><span>${shLbl('SHIFT_2')}</span><b>${S.emps.length-n1} staf</b></div></div>
   <div class="g p"><h3>Absensi Hari Ini</h3>${L.map(logRow).join('')||empty('Belum ada absensi hari ini.')}</div>`}
  const me=emp(S.me),M2=S.logs.filter(l=>l.tanggal.startsWith(ym)&&l.shift_kode!=='IZIN');
- return `<div class="cards">${card('👤','Karyawan',esc(me?.nama||'-'))+card('🗓️','Shift Hari Ini',me?shLbl(me.jadwal_minggu?.[todayIdx()]||'LIBUR'):'-')+card('✅','Hadir Bulan Ini',M2.length+' hari')+card('⏱️','Total Jam Bulan Ini',dur(M2.reduce((a,l)=>a+(l.durasi_menit||0),0)))}</div>
+ return notif()+`<div class="cards">${card('👤','Karyawan',esc(me?.nama||'-'))+card('🗓️','Shift Hari Ini',me?shLbl(me.jadwal_minggu?.[todayIdx()]||'LIBUR'):'-')+card('✅','Hadir Bulan Ini',M2.length+' hari')+card('⏱️','Total Jam Bulan Ini',dur(M2.reduce((a,l)=>a+(l.durasi_menit||0),0)))}</div>
  <div class="g p"><h3>Absensi Terakhir Saya</h3>${S.logs.slice(0,6).map(logRow).join('')||empty('Belum ada riwayat absensi.')}</div>`},
 scan(){const t=ymd(new Date()),L=S.logs.filter(l=>l.tanggal===t&&(isA()||l.karyawan_id===S.me)),
  cam='<div style="position:relative;max-width:320px;margin:10px auto;aspect-ratio:1;border-radius:22px;overflow:hidden;background:#0f172a"><video id="cam" playsinline muted style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1)"></video><div id="fbox" style="display:none;position:absolute;left:18%;top:10%;width:64%;height:74%;border:4px solid #f43f5e;border-radius:26px;pointer-events:none;transition:border-color .2s,box-shadow .2s"></div><div id="camst" style="position:absolute;left:8px;right:8px;bottom:8px;text-align:center;font-weight:800;font-size:11px;color:#fff;background:rgba(0,0,0,.55);border-radius:10px;padding:5px">Kamera belum aktif</div></div>',
@@ -179,10 +209,13 @@ leave(){const o=(isA()?S.emps:S.emps.filter(e=>e.id===S.me)).map(e=>`<option val
  <button class="btn" style="width:100%;margin-top:14px">📤 Kirim Pengajuan</button></form></div>
  <div class="g p"><h3>Daftar Pengajuan</h3>${S.leaves.map(v=>`<div class="row"><div><b>${esc(v.nama_karyawan)}</b> <span class="pill">${esc(v.jenis_izin)}</span><div class="mut">${esc(v.tanggal_mulai)} s.d. ${esc(v.tanggal_selesai)} (${v.jumlah_hari} hr) • ${esc(v.alasan)} • ${esc(v.info_lampiran||'-')}</div></div>
  <div>${v.status_approval==='Menunggu'&&isA()?`<button class="btn ok sm" onclick="A.appr('${v.id}',1)">✓ Setujui</button> <button class="btn no sm" onclick="A.appr('${v.id}',0)">✕ Tolak</button>`:`<span class="pill ${v.status_approval==='Disetujui'?'g1':v.status_approval==='Ditolak'?'r':'y'}">${esc(v.status_approval)}</span>`}</div></div>`).join('')||empty('Belum ada pengajuan.')}</div>`},
+star(){return `<div class="g p" style="text-align:center;background:linear-gradient(135deg,rgba(254,243,199,.95),rgba(255,255,255,.6))"><div style="font-size:42px">🏆✨🎁</div><h3 style="font-size:19px">Karyawan Teladan</h3><p class="mut">Penghargaan untuk karyawan paling disiplin & rajin</p>
+ <div class="f" style="justify-content:center"><div style="flex:0 1 210px"><label>Bulan</label><input type="month" class="in" id="tm" value="${S.tm}" onchange="A.tmSet()"></div></div>
+ <p class="mut" style="margin-top:10px">Skor: +10 poin/hari tepat waktu • +5 poin/hari terlambat • −1 poin tiap 10 menit terlambat • bonus 🎁 +20 jika tidak pernah terlambat (min. 5 hari hadir) • ⭐ = persentase tepat waktu</p></div><div id="sb"></div>`},
 rep(){const o=isA()?'<option value="ALL">Semua Karyawan</option>'+S.emps.map(e=>`<option value="${e.id}" ${S.f.emp===e.id?'selected':''}>${esc(e.nama)}</option>`).join(''):`<option value="${S.me}">Rekap Pribadi</option>`;
  return `<div class="g p"><h3>Rekap Jam Kerja</h3><div class="f"><div><label>Dari</label><input type="date" class="in" id="rf-s" value="${S.f.s}" onchange="A.rep()"></div><div><label>Sampai</label><input type="date" class="in" id="rf-e" value="${S.f.e}" onchange="A.rep()"></div><div><label>Karyawan</label><select class="in" id="rf-m" onchange="A.rep()" ${isA()?'':'disabled'}>${o}</select></div><button class="btn ok" style="flex:0" onclick="A.csv()">📥 CSV</button></div></div><div id="rb"></div>`}
 };
-const AFTER={emps:()=>A.grid(),rep:()=>A.rep(),scan:()=>{A.scDef();if(!isA()&&!P&&window.faceapi)faceLoad().catch(()=>{})}};
+const AFTER={emps:()=>A.grid(),rep:()=>A.rep(),star:()=>A.star(),scan:()=>{A.scDef();if(!isA()&&!P&&window.faceapi)faceLoad().catch(()=>{})}};
 
 function render(){
  camOff();
@@ -190,9 +223,11 @@ function render(){
  $('prev').style.display=P?'flex':'none';
  if(!S.role){$('bot').style.display='none';return}
  const items=NAV.filter(n=>isA()||!n[3]);
+ const nd=notifData();if(isA()){if(S.nc!=null&&nd.n>S.nc){beep([[880,.12],[1175,.22]]);toast('🔔 Ada notifikasi baru ('+nd.n+')')}S.nc=nd.n}
+ const bell=`<button class="btn sm w" style="position:relative" onclick="A.go('dash')">🔔${nd.n?'<span style="position:absolute;top:-7px;right:-7px;background:#e11d48;color:#fff;border-radius:99px;font-size:10px;padding:1px 6px">'+nd.n+'</span>':''}</button>`;
  $('side').innerHTML='<h1>🟣 StaffCentral</h1>'+items.map(n=>`<button class="nb ${S.view===n[0]?'on':''}" onclick="A.go('${n[0]}')">${n[1]} ${n[2]}</button>`).join('')+'<div style="flex:1"></div>'+(isA()?'<button class="nb" onclick="A.cfgForm()">⚙️ Jam Shift</button><button class="nb" onclick="A.purgeForm()">🧹 Kosongkan Transaksi</button>':'')+'<button class="nb" style="color:#e11d48" onclick="A.logout()">🚪 Keluar</button>';
  $('bot').innerHTML=items.map(n=>`<button class="nb ${S.view===n[0]?'on':''}" onclick="A.go('${n[0]}')"><span style="font-size:17px">${n[1]}</span>${n[2]}</button>`).join('');
- $('hdr').innerHTML=`<div><h2>${TTL[S.view]}</h2><span class="mut">${isA()?'👑 Admin HR':'👤 '+esc(emp(S.me)?.nama||'')}</span></div><div class="f" style="flex:0 0 auto;align-items:center">${isA()?'<button class="btn sm w" onclick="A.cfgForm()">⚙️</button><button class="btn sm w" onclick="A.purgeForm()">🧹</button>':''}<button class="btn sm no" onclick="A.logout()">⏻</button></div>`;
+ $('hdr').innerHTML=`<div><h2>${TTL[S.view]}</h2><span class="mut">${isA()?'👑 Admin HR':'👤 '+esc(emp(S.me)?.nama||'')}</span></div><div class="f" style="flex:0 0 auto;align-items:center">${bell}${isA()?'<button class="btn sm w" onclick="A.cfgForm()">⚙️</button><button class="btn sm w" onclick="A.purgeForm()">🧹</button>':''}<button class="btn sm no" onclick="A.logout()">⏻</button></div>`;
  $('main').innerHTML=V[S.view]();(AFTER[S.view]||(()=>{}))();
 }
 const modal=h=>{$('mdc').innerHTML=h;$('md').style.display='flex'};
@@ -254,10 +289,10 @@ tab(t){$('fs').style.display=t==='S'?'':'none';$('fa').style.display=t==='A'?'':
 async loginStaff(ev){ev.preventDefault();const n=$('ls-n').value.replace(/\s+/g,' ').trim(),p=$('ls-p').value.trim();
  try{let f;if(P)f=M.karyawan.find(e=>e.nama.toLowerCase()===n.toLowerCase()&&e.pin_password===p);else{const r=await db.from('karyawan').select('*').ilike('nama',n.replace(/[%_]/g,'')).eq('pin_password',p).limit(1);if(r.error)throw r.error;f=r.data[0]}
  if(!f)return toast('Nama atau PIN tidak sesuai');S.role='STAFF';S.me=f.id;S.view='dash';try{localStorage.setItem('sc_me',f.id)}catch(_){}await loadData();render();toast('Selamat datang, '+f.nama+'!')}catch(e){err(e)}},
-async loginAdmin(ev){ev.preventDefault();try{if(!P){const r=await db.auth.signInWithPassword({email:$('la-e').value,password:$('la-p').value});if(r.error)throw r.error}
+async loginAdmin(ev){ev.preventDefault();unlockAudio();try{if(!P){const r=await db.auth.signInWithPassword({email:$('la-e').value,password:$('la-p').value});if(r.error)throw r.error}
  S.role='ADMIN';S.me=null;S.view='dash';await loadData();render();toast('Berhasil masuk sebagai Admin HR')}catch(e){err(e)}},
 async quick(r){S.role=r;S.me=r==='STAFF'?'p1':null;S.view='dash';await loadData();render()},
-async logout(){try{if(!P&&isA())await db.auth.signOut()}catch(_){}try{localStorage.removeItem('sc_me')}catch(_){}S.role=null;S.me=null;render()},
+async logout(){try{if(!P&&isA())await db.auth.signOut()}catch(_){}try{localStorage.removeItem('sc_me')}catch(_){}S.role=null;S.me=null;S.nc=null;render()},
 scDef(){const e=emp($('sc-emp')?.value);if(e&&$('sc-shift'))$('sc-shift').value=e.jadwal_minggu?.[todayIdx()]==='SHIFT_2'?'SHIFT_2':e.jadwal_minggu?.[todayIdx()]==='SHIFT_1'?'SHIFT_1':e.shift_default},
 async scan(mode){await punch($('sc-emp').value,$('sc-shift').value,mode,{status_lokasi:'Terminal Admin',skor_wajah:null,jarak_meter:null,lat:null,lng:null});A.scDef()},
 async selfPunch(){let foto=null;unlockAudio();const me=emp(S.me);if(!me)return;const sh=me.jadwal_minggu?.[todayIdx()];if(sh!=='SHIFT_1'&&sh!=='SHIFT_2')return fail('Hari ini jadwal Anda Libur');
@@ -311,6 +346,8 @@ rep(){if($('rf-s')){S.f.s=$('rf-s').value;S.f.e=$('rf-e').value;S.f.emp=isA()?$(
  const c=(l,v)=>`<div class="g card" style="padding:12px"><div><small>${l}</small><b style="font-size:18px">${v}</b></div></div>`;
  $('rb').innerHTML=`<div class="cards">${c('Total Hadir',H.length+' hari')+c('Total Jam Kerja',dur(tot))+c('Rata-rata/Hari',H.length?dur(Math.round(tot/H.length)):'0j 0m')+c('Total Terlambat',late+' mnt')+c('Rata-rata Jarak',J.length?Math.round(J.reduce((a,l)=>a+l.jarak_meter,0)/J.length)+' m':'-')}</div>
  <div class="g p tw"><table><thead><tr><th>Tanggal</th><th>Nama</th><th>Shift</th><th>Masuk - Pulang</th><th>Durasi</th><th>Status</th><th>Jarak</th><th>Lokasi</th><th>Foto</th></tr></thead><tbody>${R.map(l=>`<tr><td>${esc(l.tanggal)}</td><td><b>${esc(l.nama_karyawan)}</b></td><td>${esc(l.shift_kode)}</td><td>${esc(l.waktu_masuk)} - ${esc(l.waktu_pulang)}</td><td>${dur(l.durasi_menit||0)}</td><td>${stPill(l.status_kehadiran)}</td><td>${l.jarak_meter!=null?'<b>📍 '+l.jarak_meter+' m</b>':'-'}</td><td>${esc(l.status_lokasi||'-')}${l.skor_wajah!=null?'<div class="mut">🙂 wajah '+l.skor_wajah+'%</div>':''}${mapA(l)}</td><td><div style="display:flex;gap:6px">${thumb(l.foto_masuk)||'-'}${thumb(l.foto_pulang)}</div></td></tr>`).join('')||`<tr><td colspan="9">${empty('Tidak ada data pada rentang ini.')}</td></tr>`}</tbody></table></div>`},
+async star(){if(!isA()){try{const[y,m]=S.tm.split('-').map(Number),last=new Date(y,m,0).getDate();S.tl=await D.sel('absensi','karyawan_id,nama_karyawan,tanggal,shift_kode,menit_terlambat,durasi_menit',S.tm+'-01',S.tm+'-'+pad(last))}catch(e){err(e)}}const b=$('sb');if(b)b.innerHTML=starBody()},
+tmSet(){if($('tm').value){S.tm=$('tm').value;A.star()}},
 csv(){csvDown(repRows(),'Rekap_Absensi')},
 cfgForm(){const c=S.cfg,t=(i,l,v)=>`<div><label>${l}</label><input class="in" type="time" id="${i}" value="${v}"></div>`,n=(i,l,v)=>`<div><label>${l}</label><input class="in" type="number" step="0.5" id="${i}" value="${v}"></div>`;
  modal(`<h3>⏰ Jam Kerja 2 Shift</h3><form onsubmit="A.saveCfg(event)"><div class="two">${t('c1i','Shift 1 Masuk',c.shift1_in)+t('c1o','Shift 1 Pulang',c.shift1_out)+t('c2i','Shift 2 Masuk',c.shift2_in)+t('c2o','Shift 2 Pulang',c.shift2_out)}</div>
@@ -328,6 +365,7 @@ async purge(){if($('pc').value.trim().toUpperCase()!=='HAPUS')return toast('Keti
 close
 };
 
+setInterval(()=>{if(S.role&&!document.hidden&&S.view==='dash'&&$('md').style.display!=='flex'&&$('ovl').style.display!=='flex')refresh()},60000);
 // ===== BOOT =====
 (async()=>{try{
  if(!P){if(!db)throw new Error('Supabase gagal dimuat');const r=await db.auth.getSession();if(r.data.session)S.role='ADMIN'}

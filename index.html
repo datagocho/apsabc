@@ -39,7 +39,7 @@ label{display:block;font-weight:700;font-size:11px;margin:10px 0 4px;color:#4338
 .pill.g1{background:#d1fae5;color:#047857}.pill.r{background:#ffe4e6;color:#be123c}.pill.y{background:#fef3c7;color:#b45309}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
 .av{font-size:34px}
-.tw{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:640px}th{text-align:left;font-size:10px;text-transform:uppercase;color:#4338ca;padding:8px}td{padding:8px;border-top:1px solid rgba(99,102,241,.12)}
+.tw{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:760px}th{text-align:left;font-size:10px;text-transform:uppercase;color:#4338ca;padding:8px}td{padding:8px;border-top:1px solid rgba(99,102,241,.12)}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.f{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}.f>div{flex:1;min-width:130px}
 #md{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);backdrop-filter:blur(6px);z-index:10;align-items:center;justify-content:center;padding:14px}
 #md>div{max-width:440px;width:100%;max-height:92vh;overflow:auto;padding:20px;background:rgba(255,255,255,.95)}
@@ -124,7 +124,9 @@ async function refresh(){try{await loadData();render()}catch(e){err(e)}}
 // ===== TAMPILAN =====
 const NAV=[['dash','📊','Dasbor',0],['scan','📷','Absen',0],['emps','👥','Karyawan',1],['sched','🗓️','Jadwal',0],['leave','🏥','Izin/Sakit',0],['rep','📈','Rekap',0]];
 const TTL={dash:'Dasbor',scan:'Absensi Wajah & Lokasi',emps:'Data Karyawan',sched:'Jadwal 2 Shift',leave:'Pengajuan Izin / Sakit',rep:'Rekap Jam Kerja'};
-const logRow=l=>`<div class="row"><div><b>${esc(l.nama_karyawan)}</b> <span class="pill">${esc(l.shift_kode)}</span><div class="mut">${esc(l.tanggal)} • ${esc(l.waktu_masuk)} - ${esc(l.waktu_pulang)} • ${dur(l.durasi_menit||0)}${l.jarak_meter!=null?' • 📍'+l.jarak_meter+' m':''}${l.skor_wajah!=null?' • 🙂'+l.skor_wajah+'%':''}</div></div>${stPill(l.status_kehadiran)}</div>`;
+const mapA=l=>l.lat!=null&&l.lng!=null?` <a href="https://www.google.com/maps?q=${l.lat},${l.lng}" target="_blank" rel="noopener" style="color:#4338ca;font-weight:800">🗺️ Peta</a>`:'';
+const locPill=l=>l.jarak_meter!=null?`<div class="mut" style="margin-top:3px">📍 <b>${l.jarak_meter} m</b> dari kantor${l.status_lokasi?' • '+esc(l.status_lokasi):''}${mapA(l)}</div>`:'';
+const logRow=l=>`<div class="row"><div><b>${esc(l.nama_karyawan)}</b> <span class="pill">${esc(l.shift_kode)}</span><div class="mut">${esc(l.tanggal)} • ${esc(l.waktu_masuk)} - ${esc(l.waktu_pulang)} • ${dur(l.durasi_menit||0)}${l.skor_wajah!=null?' • 🙂 wajah '+l.skor_wajah+'%':''}</div></div><div style="text-align:right">${stPill(l.status_kehadiran)}${locPill(l)}</div></div>`;
 const empty=t=>`<div class="mut" style="padding:14px;text-align:center">${t}</div>`;
 
 const V={
@@ -182,7 +184,7 @@ const modal=h=>{$('mdc').innerHTML=h;$('md').style.display='flex'};
 const close=()=>$('md').style.display='none';
 $('md').addEventListener('mousedown',e=>{if(e.target.id==='md')close()});
 
-function csvDown(rows,name){const c=['Tanggal,Nama,Shift,Masuk,Pulang,Durasi,Terlambat(mnt),Status,Jarak(m),SkorWajah'].concat(rows.map(l=>[l.tanggal,'"'+String(l.nama_karyawan).replace(/"/g,'""')+'"',l.shift_kode,l.waktu_masuk,l.waktu_pulang,dur(l.durasi_menit||0),l.menit_terlambat||0,l.status_kehadiran,l.jarak_meter??'',l.skor_wajah??''].join(','))).join('\n');
+function csvDown(rows,name){const c=['Tanggal,Nama,Shift,Masuk,Pulang,Durasi,Terlambat(mnt),Status,Jarak(m),SkorWajah,Lokasi,Lat,Lng'].concat(rows.map(l=>[l.tanggal,'"'+String(l.nama_karyawan).replace(/"/g,'""')+'"',l.shift_kode,l.waktu_masuk,l.waktu_pulang,dur(l.durasi_menit||0),l.menit_terlambat||0,l.status_kehadiran,l.jarak_meter??'',l.skor_wajah??'','"'+(l.status_lokasi||'')+'"',l.lat??'',l.lng??''].join(','))).join('\n');
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+c],{type:'text/csv'}));a.download=name+'_'+ymd(new Date())+'.csv';a.click()}
 const repRows=()=>S.logs.filter(l=>l.tanggal>=S.f.s&&l.tanggal<=S.f.e&&(S.f.emp==='ALL'||l.karyawan_id===S.f.emp));
 
@@ -275,10 +277,10 @@ async appr(id,ok){const v=S.leaves.find(x=>x.id===id);if(!v)return;
  if(ok){const d=new Date(v.tanggal_mulai+'T00:00:00');for(let i=0;i<Math.min(v.jumlah_hari,62);i++){await D.ins('absensi',{karyawan_id:v.karyawan_id,nama_karyawan:v.nama_karyawan,tanggal:ymd(d),shift_kode:'IZIN',waktu_masuk:'-',waktu_pulang:'-',durasi_menit:0,menit_terlambat:0,status_kehadiran:v.jenis_izin,status_lokasi:'Disetujui Admin'});d.setDate(d.getDate()+1)}}
  toast('Pengajuan '+(ok?'disetujui':'ditolak'));await refresh()}catch(x){err(x)}},
 rep(){if($('rf-s')){S.f.s=$('rf-s').value;S.f.e=$('rf-e').value;S.f.emp=isA()?$('rf-m').value:S.me}
- const R=repRows(),H=R.filter(l=>l.shift_kode!=='IZIN'),tot=H.reduce((a,l)=>a+(l.durasi_menit||0),0),late=H.reduce((a,l)=>a+(l.menit_terlambat||0),0);
+ const R=repRows(),H=R.filter(l=>l.shift_kode!=='IZIN'),tot=H.reduce((a,l)=>a+(l.durasi_menit||0),0),late=H.reduce((a,l)=>a+(l.menit_terlambat||0),0),J=H.filter(l=>l.jarak_meter!=null);
  const c=(l,v)=>`<div class="g card" style="padding:12px"><div><small>${l}</small><b style="font-size:18px">${v}</b></div></div>`;
- $('rb').innerHTML=`<div class="cards">${c('Total Hadir',H.length+' hari')+c('Total Jam Kerja',dur(tot))+c('Rata-rata/Hari',H.length?dur(Math.round(tot/H.length)):'0j 0m')+c('Total Terlambat',late+' mnt')}</div>
- <div class="g p tw"><table><thead><tr><th>Tanggal</th><th>Nama</th><th>Shift</th><th>Masuk - Pulang</th><th>Durasi</th><th>Status</th></tr></thead><tbody>${R.map(l=>`<tr><td>${esc(l.tanggal)}</td><td><b>${esc(l.nama_karyawan)}</b></td><td>${esc(l.shift_kode)}</td><td>${esc(l.waktu_masuk)} - ${esc(l.waktu_pulang)}</td><td>${dur(l.durasi_menit||0)}</td><td>${stPill(l.status_kehadiran)}<div class="mut">${l.jarak_meter!=null?'📍'+l.jarak_meter+' m':''} ${l.skor_wajah!=null?'🙂'+l.skor_wajah+'%':''}</div></td></tr>`).join('')||`<tr><td colspan="6">${empty('Tidak ada data pada rentang ini.')}</td></tr>`}</tbody></table></div>`},
+ $('rb').innerHTML=`<div class="cards">${c('Total Hadir',H.length+' hari')+c('Total Jam Kerja',dur(tot))+c('Rata-rata/Hari',H.length?dur(Math.round(tot/H.length)):'0j 0m')+c('Total Terlambat',late+' mnt')+c('Rata-rata Jarak',J.length?Math.round(J.reduce((a,l)=>a+l.jarak_meter,0)/J.length)+' m':'-')}</div>
+ <div class="g p tw"><table><thead><tr><th>Tanggal</th><th>Nama</th><th>Shift</th><th>Masuk - Pulang</th><th>Durasi</th><th>Status</th><th>Jarak</th><th>Lokasi</th></tr></thead><tbody>${R.map(l=>`<tr><td>${esc(l.tanggal)}</td><td><b>${esc(l.nama_karyawan)}</b></td><td>${esc(l.shift_kode)}</td><td>${esc(l.waktu_masuk)} - ${esc(l.waktu_pulang)}</td><td>${dur(l.durasi_menit||0)}</td><td>${stPill(l.status_kehadiran)}</td><td>${l.jarak_meter!=null?'<b>📍 '+l.jarak_meter+' m</b>':'-'}</td><td>${esc(l.status_lokasi||'-')}${l.skor_wajah!=null?'<div class="mut">🙂 wajah '+l.skor_wajah+'%</div>':''}${mapA(l)}</td></tr>`).join('')||`<tr><td colspan="8">${empty('Tidak ada data pada rentang ini.')}</td></tr>`}</tbody></table></div>`},
 csv(){csvDown(repRows(),'Rekap_Absensi')},
 cfgForm(){const c=S.cfg,t=(i,l,v)=>`<div><label>${l}</label><input class="in" type="time" id="${i}" value="${v}"></div>`,n=(i,l,v)=>`<div><label>${l}</label><input class="in" type="number" step="0.5" id="${i}" value="${v}"></div>`;
  modal(`<h3>⏰ Jam Kerja 2 Shift</h3><form onsubmit="A.saveCfg(event)"><div class="two">${t('c1i','Shift 1 Masuk',c.shift1_in)+t('c1o','Shift 1 Pulang',c.shift1_out)+t('c2i','Shift 2 Masuk',c.shift2_in)+t('c2o','Shift 2 Pulang',c.shift2_out)}</div>

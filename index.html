@@ -183,7 +183,7 @@ function notif(){const d=notifData(),tag=(ic,t,n)=>`<div style="font-weight:800;
  else{const x=d.absent[0],mine=d.late[0];
   if(x)h+=`<div class="row" style="background:#ffe4e6"><div><b>❗ Anda belum absen hari ini!</b><div class="mut">${shLbl(x.sh)} • sudah lewat ${x.over} menit dari jam masuk</div></div><button class="btn no sm" onclick="A.go('scan')">📷 Absen Sekarang</button></div>`;
   if(mine)h+=`<div class="row" style="background:#fef3c7"><b>⏰ Hari ini Anda terlambat ${mine.menit_terlambat} menit</b></div>`;
-  h+=tag('📋','Status Pengajuan Saya',S.leaves.length)+(S.leaves.slice(0,3).map(v=>`<div class="row"><div><span class="pill">${esc(v.jenis_izin)}</span> <span class="mut">${esc(v.tanggal_mulai)} s.d. ${esc(v.tanggal_selesai)}</span></div><span class="pill ${v.status_approval==='Disetujui'?'g1':v.status_approval==='Ditolak'?'r':'y'}">${esc(v.status_approval)}</span></div>`).join('')||empty('Belum ada pengajuan'))+`<div style="margin-top:10px"><button class="btn sm" onclick="A.go('leave')">+ Ajukan Izin / Sakit</button></div>`}
+  h+=tag('📋','Status Pengajuan Saya',S.leaves.length)+(S.leaves.slice(0,3).map(v=>`<div class="row"><div><span class="pill">${esc(v.jenis_izin)}</span> <span class="mut">${esc(v.tanggal_mulai)} s.d. ${esc(v.tanggal_selesai)}</span></div><span class="pill ${v.status_approval==='Disetujui'?'g1':v.status_approval==='Ditolak'?'r':v.status_approval==='Dibatalkan'?'wh':'y'}">${esc(v.status_approval)}</span></div>`).join('')||empty('Belum ada pengajuan'))+`<div style="margin-top:10px"><button class="btn sm" onclick="A.go('leave')">+ Ajukan Izin / Sakit</button></div>`}
  return h+'</div>'}
 const blnLbl=b=>new Date(b+'-01T00:00:00').toLocaleDateString('id-ID',{month:'long',year:'numeric'});
 function annCard(){const a=S.ann;if(!a)return'';const me=a.karyawan_id&&a.karyawan_id===S.me;
@@ -240,7 +240,7 @@ leave(){const o=(isA()?S.emps:S.emps.filter(e=>e.id===S.me)).map(e=>`<option val
  <label>Alasan</label><textarea class="in" id="lv-r" rows="2" required></textarea><label>No. Surat / Info Lampiran</label><input class="in" id="lv-a">
  <button class="btn ok" style="width:100%;margin-top:16px;padding:14px;font-size:16px">Kirim Pengajuan</button></form></div>
  <div class="g p"><h3>Daftar Pengajuan</h3>${S.leaves.map(v=>`<div class="row"><div><b>${esc(v.nama_karyawan)}</b> <span class="pill">${esc(v.jenis_izin)}</span><div class="mut">${esc(v.tanggal_mulai)} s.d. ${esc(v.tanggal_selesai)} (${v.jumlah_hari} hr) • ${esc(v.alasan)} • ${esc(v.info_lampiran||'-')}</div></div>
- <div>${v.status_approval==='Menunggu'&&isA()?`<button class="btn ok sm" onclick="A.appr('${v.id}',1)">✓ Setujui</button> <button class="btn no sm" onclick="A.appr('${v.id}',0)">✕ Tolak</button>`:`<span class="pill ${v.status_approval==='Disetujui'?'g1':v.status_approval==='Ditolak'?'r':'y'}">${esc(v.status_approval)}</span>`}</div></div>`).join('')||empty('Belum ada pengajuan.')}</div>`},
+ <div>${v.status_approval==='Menunggu'&&isA()?`<button class="btn ok sm" onclick="A.appr('${v.id}',1)">✓ Setujui</button> <button class="btn no sm" onclick="A.appr('${v.id}',0)">✕ Tolak</button>`:`<span class="pill ${v.status_approval==='Disetujui'?'g1':v.status_approval==='Ditolak'?'r':v.status_approval==='Dibatalkan'?'wh':'y'}">${esc(v.status_approval)}</span>${(isA()&&v.status_approval==='Disetujui')||(!isA()&&v.status_approval==='Menunggu')?` <button class="btn no sm" onclick="A.cancelLeave('${v.id}')">Batalkan</button>`:''}`}</div></div>`).join('')||empty('Belum ada pengajuan.')}</div>`},
 star(){return `<div class="g p" style="text-align:center"><div style="display:flex;justify-content:center">${ic('trophy',42)}</div><h3 style="font-size:32px;margin:6px 0">Karyawan Teladan</h3><p class="mut" style="font-size:16px;margin:0 0 10px">Penghargaan untuk karyawan paling disiplin & rajin</p>
  <label style="text-align:center">Bulan</label><input type="month" class="in" id="tm" value="${S.tm}" onchange="A.tmSet()" style="max-width:260px;margin:0 auto;display:block;text-align:center">
  <p class="mut" style="margin:14px 0 0;font-size:12.5px">Skor: +10 poin/hari tepat waktu • +5 poin/hari terlambat • −1 poin tiap 10 menit terlambat • bintang = persentase tepat waktu</p></div><div id="sb"></div>`},
@@ -392,6 +392,11 @@ eye(id,b){const i=$(id),show=i.type==='password';i.type=show?'text':'password';b
 dis(k){disSet().add(k);disSave();render()},
 disAll(){const d=notifData(),X=disSet(),t=ymd(new Date());d.late.forEach(l=>X.add('L'+l.id));d.absent.forEach(x=>X.add('A'+x.e.id+'@'+t));d.pend.forEach(v=>X.add('P'+v.id));disSave();S.nc=0;render();toast('Notifikasi dibersihkan')},
 wk(d){S.wk=d?(S.wk||0)+d:0;render()},
+async cancelLeave(id){const v=S.leaves.find(x=>x.id===id);if(!v)return;const ok=v.status_approval==='Disetujui';
+ if(!confirm('Batalkan '+v.jenis_izin+' '+v.nama_karyawan+' ('+v.tanggal_mulai+' s.d. '+v.tanggal_selesai+')?'+(ok?' Catatan izin pada rekap kehadiran ikut dihapus.':'')))return;
+ try{try{await D.upd('izin',id,{status_approval:'Dibatalkan'})}catch(e){if(/check|constraint/i.test(e.message||''))await D.upd('izin',id,{status_approval:'Ditolak'});else throw e}
+  if(ok){const rows=S.logs.filter(l=>l.karyawan_id===v.karyawan_id&&l.shift_kode==='IZIN'&&l.tanggal>=v.tanggal_mulai&&l.tanggal<=v.tanggal_selesai);for(const l of rows)await D.del('absensi',l.id)}
+  toast('Pengajuan dibatalkan');await refresh()}catch(e){err(e)}},
 tmSet(){if($('tm').value){S.tm=$('tm').value;A.star()}},
 csv(){csvDown(repRows(),'Rekap_Absensi')},
 cfgForm(){const c=S.cfg,t=(i,l,v)=>`<div><label>${l}</label><input class="in" type="time" id="${i}" value="${v}"></div>`,n=(i,l,v)=>`<div><label>${l}</label><input class="in" type="number" step="0.5" id="${i}" value="${v}"></div>`;

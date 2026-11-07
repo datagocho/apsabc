@@ -43,8 +43,8 @@ html,body{margin:0;height:100%}
 .card small,.sc small{display:block;font-weight:700;font-size:13px;line-height:1.15}.card b{display:block;font-size:30px;line-height:1.1;font-weight:700;word-break:break-word}
 .sc{padding:14px 16px}.sc b{display:block;font-size:30px;margin-top:6px;font-weight:700}
 .row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;border:2.5px solid var(--ink);border-radius:16px;background:#fff;margin-top:10px;flex-wrap:wrap}
-.pill{display:inline-block;padding:3px 12px;border:2.5px solid var(--ink);border-radius:99px;font-size:12px;font-weight:700;background:var(--y);color:var(--ink)}
-.pill.g1{background:var(--green)}.pill.r{background:var(--pink)}.pill.y{background:var(--ly)}.pill.wh{background:#fff}
+.pill{white-space:nowrap;display:inline-block;padding:3px 12px;border:2.5px solid var(--ink);border-radius:99px;font-size:12px;font-weight:700;background:var(--y);color:var(--ink)}
+.pill.g1{background:var(--green)}.pill.r{background:var(--pink)}.pill.y{background:var(--ly)}.pill.wh{background:#fff}.pill.pk{background:var(--pk)}.pill.lv{background:var(--lav)}
 button.pill{cursor:pointer;font-family:inherit;padding:6px 14px}
 .btn{border:3px solid var(--ink);border-radius:16px;padding:11px 16px;font-weight:700;font-size:14px;cursor:pointer;color:var(--ink);background:var(--y);box-shadow:3px 3px 0 var(--ink);display:inline-flex;align-items:center;justify-content:center;gap:6px;font-family:inherit}
 .btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
@@ -223,9 +223,16 @@ scan(){const t=ymd(new Date()),L=S.logs.filter(l=>l.tanggal===t&&(isA()||l.karya
  ${!ready?big('','DAFTARKAN WAJAH DULU',"A.enroll('"+S.me+"')"):dn?'<div class="pill g1" style="font-size:15px;padding:10px 18px;margin-top:12px">Absensi hari ini selesai</div>':op?big('','ABSEN PULANG','A.selfPunch()'):big('ok','ABSEN MASUK','A.selfPunch()')}
  <p class="mut" style="margin:12px 0 0">${lok?'':'Admin belum mengatur lokasi kantor • '}Cukup 1 ketukan: lokasi & wajah dicek otomatis</p></div>`+logs},
 emps(){return `<div class="g p"><div class="f" style="align-items:flex-start;flex-wrap:nowrap"><div style="flex:1"><h3>Data Karyawan</h3><span class="mut">Tersimpan permanen di database</span></div><button class="btn ok" style="flex:0 0 auto" onclick="A.empForm()">${ic('plus',18)} Tambah</button></div><input class="in" id="es" placeholder="Cari nama / NIK..." oninput="A.grid()" style="margin-top:14px"></div><div class="grid" id="eg"></div>`},
-sched(){const list=isA()?S.emps:S.emps.filter(e=>e.id===S.me);
- return `<div class="g p f"><div><h3>Jadwal Roster Mingguan</h3><span class="mut">${isA()?'Klik tombol shift untuk mengganti (otomatis tersimpan)':'Jadwal Anda (baca saja)'}</span></div>${isA()?'<button class="btn ok" style="flex:0" onclick="A.rotate()">Tukar Shift</button>':''}</div>
- <div class="g p tw"><table><thead><tr><th>Nama</th>${DAYS.map(d=>`<th>${d}</th>`).join('')}</tr></thead><tbody>${list.map(e=>`<tr><td><b>${esc(e.nama)}</b></td>${(e.jadwal_minggu||[]).map((s,i)=>{const c=s==='SHIFT_1'?'':s==='SHIFT_2'?'wh':'r',l=s==='SHIFT_1'?'Shift 1':s==='SHIFT_2'?'Shift 2':'Libur';return `<td>${isA()?`<button class="pill ${c}" onclick="A.cyc('${e.id}',${i})">${l}</button>`:`<span class="pill ${c}">${l}</span>`}</td>`}).join('')}</tr>`).join('')||`<tr><td colspan="8">${empty('Belum ada karyawan.')}</td></tr>`}</tbody></table></div>`},
+sched(){const list=isA()?S.emps:S.emps.filter(e=>e.id===S.me),wk=S.wk||0,mo=new Date();mo.setDate(mo.getDate()-todayIdx()+wk*7);
+ const ds=DAYS.map((_,i)=>{const d=new Date(mo);d.setDate(mo.getDate()+i);return ymd(d)}),tdy=ymd(new Date()),fm=d=>d.slice(8)+'/'+d.slice(5,7),
+ LV={'Sakit':['Sakit','pk'],'Izin Keperluan':['Izin','lv'],'Cuti Tahunan':['Cuti','g1'],'Dinas Luar':['Dinas Luar','y']},
+ lvOf=(id,d)=>S.leaves.find(v=>v.karyawan_id===id&&v.status_approval==='Disetujui'&&v.tanggal_mulai<=d&&d<=v.tanggal_selesai);
+ return `<div class="g p"><div class="f" style="align-items:center;flex-wrap:nowrap"><div style="flex:1"><h3>Jadwal Roster Mingguan</h3><span class="mut">${isA()?'Klik tombol shift untuk mengganti (otomatis tersimpan)':'Jadwal Anda (baca saja)'}</span></div>${isA()?'<button class="btn ok" style="flex:0 0 auto" onclick="A.rotate()">Tukar Shift</button>':''}</div>
+ <div class="f" style="align-items:center;justify-content:center;flex-wrap:nowrap;margin-top:12px"><button class="btn sm w" style="flex:0 0 auto" onclick="A.wk(-1)">‹</button><b style="flex:1;text-align:center">${fm(ds[0])} – ${fm(ds[6])}/${ds[6].slice(0,4)}${wk===0?' (minggu ini)':''}</b><button class="btn sm w" style="flex:0 0 auto" onclick="A.wk(1)">›</button>${wk?'<button class="btn sm" style="flex:0 0 auto" onclick="A.wk(0)">Hari ini</button>':''}</div></div>
+ <div class="g p tw"><table><thead><tr><th>Nama</th>${DAYS.map((d,i)=>`<th style="${ds[i]===tdy?'background:var(--ly)':''}">${d}<div class="mut" style="font-weight:600;text-transform:none">${fm(ds[i])}</div></th>`).join('')}</tr></thead><tbody>${list.map(e=>`<tr><td><b>${esc(e.nama)}</b></td>${(e.jadwal_minggu||[]).map((s,i)=>{const v=lvOf(e.id,ds[i]);
+  if(v){const[l,c]=LV[v.jenis_izin]||[v.jenis_izin,'lv'];return `<td><span class="pill ${c}" title="${esc(v.alasan||'')}">${esc(l)}</span></td>`}
+  const c=s==='SHIFT_1'?'':s==='SHIFT_2'?'wh':'r',l=s==='SHIFT_1'?'Shift 1':s==='SHIFT_2'?'Shift 2':'Libur';return `<td>${isA()?`<button class="pill ${c}" onclick="A.cyc('${e.id}',${i})">${l}</button>`:`<span class="pill ${c}">${l}</span>`}</td>`}).join('')}</tr>`).join('')||`<tr><td colspan="8">${empty('Belum ada karyawan.')}</td></tr>`}</tbody></table></div>
+ <div class="g p"><h3 style="font-size:18px">Keterangan</h3><div class="f" style="gap:8px;margin-top:8px"><span class="pill">Shift 1</span><span class="pill wh">Shift 2</span><span class="pill r">Libur</span><span class="pill pk">Sakit</span><span class="pill lv">Izin</span><span class="pill g1">Cuti</span><span class="pill y">Dinas Luar</span></div><p class="mut" style="margin:10px 0 0">Sakit, Izin, Cuti, dan Dinas Luar otomatis muncul di tanggalnya setelah pengajuan disetujui admin.</p></div>`},
 leave(){const o=(isA()?S.emps:S.emps.filter(e=>e.id===S.me)).map(e=>`<option value="${e.id}">${esc(e.nama)}</option>`).join(''),t=ymd(new Date());
  return `<div class="g p"><h3>Form Pengajuan</h3><form onsubmit="A.sendLeave(event)"><label>Karyawan</label><select class="in" id="lv-e">${o}</select>
  <label>Jenis</label><select class="in" id="lv-t"><option>Sakit</option><option>Izin Keperluan</option><option>Cuti Tahunan</option><option>Dinas Luar</option></select>
@@ -384,6 +391,7 @@ clock(){toast(new Date().toLocaleString('id-ID',{weekday:'long',day:'numeric',mo
 eye(id,b){const i=$(id),show=i.type==='password';i.type=show?'text':'password';b.innerHTML=ic(show?'eyeoff':'eye',24)},
 dis(k){disSet().add(k);disSave();render()},
 disAll(){const d=notifData(),X=disSet(),t=ymd(new Date());d.late.forEach(l=>X.add('L'+l.id));d.absent.forEach(x=>X.add('A'+x.e.id+'@'+t));d.pend.forEach(v=>X.add('P'+v.id));disSave();S.nc=0;render();toast('Notifikasi dibersihkan')},
+wk(d){S.wk=d?(S.wk||0)+d:0;render()},
 tmSet(){if($('tm').value){S.tm=$('tm').value;A.star()}},
 csv(){csvDown(repRows(),'Rekap_Absensi')},
 cfgForm(){const c=S.cfg,t=(i,l,v)=>`<div><label>${l}</label><input class="in" type="time" id="${i}" value="${v}"></div>`,n=(i,l,v)=>`<div><label>${l}</label><input class="in" type="number" step="0.5" id="${i}" value="${v}"></div>`;

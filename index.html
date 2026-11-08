@@ -166,6 +166,13 @@ const shLbl=c=>isSh(c)?`Shift ${shN(c)} (${shIn(c)}-${shOut(c)})`:c==='IZIN'?'Iz
 function weekDates(wk=0){const mo=new Date();mo.setDate(mo.getDate()-todayIdx()+wk*7);return DAYS.map((_,i)=>{const d=new Date(mo);d.setDate(mo.getDate()+i);return ymd(d)})}
 const jk=(id,d)=>id+'|'+d;
 function shiftOf(e,d){const r=S.jh.get(jk(e.id,d));if(r)return r.shift_kode;const i=(new Date(d+'T00:00:00').getDay()+6)%7;return e.jadwal_minggu?.[i]||'LIBUR'}
+const lateOf=(w,sh)=>{let m=mins(w)-mins(shIn(sh));if(m<-720)m+=1440;m=Math.max(0,m);return m>S.cfg.toleransi_menit?m:0};
+const okMasuk=l=>l.shift_kode!=='IZIN'&&/^\d\d:\d\d$/.test(l.waktu_masuk||'');
+async function fixLog(l,sh){const tl=lateOf(l.waktu_masuk,sh),pt={shift_kode:sh,menit_terlambat:tl,status_kehadiran:tl?'Terlambat':'Tepat Waktu'};await D.upd('absensi',l.id,pt);Object.assign(l,pt)}
+async function fixDay(id,d){const e=emp(id);if(!e)return;const sc=shiftOf(e,d);if(!isSh(sc))return;for(const l of S.logs.filter(x=>x.karyawan_id===id&&x.tanggal===d&&okMasuk(x)&&x.status_lokasi!=='Terminal Admin'&&x.shift_kode!==sc))await fixLog(l,sc)}
+async function reconcile(){const wd=weekDates(0);let n=0;
+ for(const l of S.logs){if(!okMasuk(l)||l.tanggal<wd[0]||l.tanggal>wd[6]||l.status_lokasi==='Terminal Admin')continue;const e=emp(l.karyawan_id);if(!e)continue;const sc=shiftOf(e,l.tanggal);if(!isSh(sc)||sc===l.shift_kode)continue;try{await fixLog(l,sc);n++}catch(x){console.warn('reconcile',x);break}}
+ if(n&&S.role==='ADMIN')toast(n+' absensi disesuaikan dengan jadwal terbaru')}
 async function loadJH(a,b){try{const st=S.role==='STAFF',rows=await D.sel('jadwal_harian','karyawan_id,tanggal,shift_kode',a,b,st?'karyawan_id':null,st?S.me:null);[...S.jh.keys()].forEach(k=>{const v=S.jh.get(k);if(v.tanggal>=a&&v.tanggal<=b)S.jh.delete(k)});rows.forEach(r=>S.jh.set(jk(r.karyawan_id,r.tanggal),r))}catch(e){console.warn('jadwal_harian',e)}}
 const todayIdx=()=>(new Date().getDay()+6)%7;
 const stPill=s=>`<span class="pill ${s==='Tepat Waktu'?'g1':s==='Terlambat'?'y':'r'}">${esc(s)}</span>`;
@@ -176,7 +183,7 @@ async function loadData(){
  S.logs=l.sort((a,b)=>(b.tanggal+(b.waktu_masuk||'')).localeCompare(a.tanggal+(a.waktu_masuk||'')));
  S.leaves=v.sort((a,b)=>(b.tanggal_mulai||'').localeCompare(a.tanggal_mulai||''));
  S.cfg={...DEF,...(c[0]||{})};S.anns=an||[];S.ann=S.anns.slice().sort((a,b)=>b.bulan.localeCompare(a.bulan))[0]||null;
- const wd=weekDates(0);await loadJH(wd[0],wd[6]);
+ const wd=weekDates(0);await loadJH(wd[0],wd[6]);await reconcile();
 }
 async function refresh(){try{await loadData();render()}catch(e){err(e)}}
 
@@ -389,10 +396,10 @@ async saveEmp(ev,id){ev.preventDefault();const o={nama:$('fe-n').value.trim(),pi
  close();toast('Data karyawan tersimpan');await refresh()}catch(e){err(e)}},
 async delEmp(id){const e=emp(id);if(!e||!confirm('Hapus '+e.nama+'? Riwayat absensi & izin karyawan ini juga ikut terhapus.'))return;try{const old=S.logs.filter(l=>l.karyawan_id===id);await D.del('karyawan',id);await rmFoto(old);toast('Karyawan dihapus permanen');await refresh()}catch(x){err(x)}},
 async cyc(id,i){const e=emp(id);if(!e)return;const d=weekDates(S.wk||0)[i],o=[...SH,'LIBUR'],nx=o[(o.indexOf(shiftOf(e,d))+1)%o.length];
- try{await D.up('jadwal_harian',[{karyawan_id:id,tanggal:d,shift_kode:nx}],'karyawan_id,tanggal');S.jh.set(jk(id,d),{karyawan_id:id,tanggal:d,shift_kode:nx});render()}catch(x){err(x)}},
+ try{await D.up('jadwal_harian',[{karyawan_id:id,tanggal:d,shift_kode:nx}],'karyawan_id,tanggal');S.jh.set(jk(id,d),{karyawan_id:id,tanggal:d,shift_kode:nx});await fixDay(id,d);render()}catch(x){err(x)}},
 async rotate(){const ds=weekDates(S.wk||0);if(!confirm('Putar Shift 1→2→3→4→1 untuk semua karyawan pada minggu '+ds[0]+' s.d. '+ds[6]+'?'))return;const rows=[];
  S.emps.forEach(e=>ds.forEach(d=>{const c=shiftOf(e,d);if(isSh(c))rows.push({karyawan_id:e.id,tanggal:d,shift_kode:SH[(SH.indexOf(c)+1)%SH.length]})}));
- try{await D.up('jadwal_harian',rows,'karyawan_id,tanggal');await loadJH(ds[0],ds[6]);toast('Shift minggu ini diputar');render()}catch(x){err(x)}},
+ try{await D.up('jadwal_harian',rows,'karyawan_id,tanggal');await loadJH(ds[0],ds[6]);const td=ymd(new Date());for(const r of rows.filter(x=>x.tanggal<=td))await fixDay(r.karyawan_id,r.tanggal);toast('Shift minggu ini diputar');render()}catch(x){err(x)}},
 async copyMonth(){const ds=weekDates(S.wk||0);if(!S.emps.length||!confirm('Salin jadwal minggu '+ds[0]+' s.d. '+ds[6]+' ke 4 minggu berikutnya untuk semua karyawan?'))return;const rows=[];
  S.emps.forEach(e=>ds.forEach(d=>{const sh=shiftOf(e,d);for(let k=1;k<=4;k++){const dt=new Date(d+'T00:00:00');dt.setDate(dt.getDate()+7*k);rows.push({karyawan_id:e.id,tanggal:ymd(dt),shift_kode:sh})}}));
  try{await D.up('jadwal_harian',rows,'karyawan_id,tanggal');const en=new Date(ds[6]+'T00:00:00');en.setDate(en.getDate()+28);await loadJH(ds[0],ymd(en));toast('Jadwal 4 minggu berikutnya tersimpan');render()}catch(x){err(x)}},
@@ -407,7 +414,7 @@ rep(){if($('rf-s')){S.f.s=$('rf-s').value;S.f.e=$('rf-e').value;S.f.emp=isA()?$(
  const R=repRows(),H=R.filter(l=>l.shift_kode!=='IZIN'),tot=H.reduce((a,l)=>a+(l.durasi_menit||0),0),late=H.reduce((a,l)=>a+(l.menit_terlambat||0),0),J=H.filter(l=>l.jarak_meter!=null);
  const c=(l,v)=>`<div class="g sc"><small>${l}</small><b>${v}</b></div>`;
  $('rb').innerHTML=`<div class="cards">${c('Total Hadir',H.length+' hari')+c('Total Jam Kerja',dur(tot))+c('Rata-rata/Hari',H.length?dur(Math.round(tot/H.length)):'0j 0m')+c('Total Terlambat',late+' mnt')+c('Rata-rata Jarak',J.length?Math.round(J.reduce((a,l)=>a+l.jarak_meter,0)/J.length)+' m':'-')}</div>
- <div class="g p tw"><table><thead><tr><th>Tanggal</th><th>Nama</th><th>Shift</th><th>Masuk - Pulang</th><th>Durasi</th><th>Status</th><th>Jarak</th><th>Lokasi</th><th>Foto</th></tr></thead><tbody>${R.map(l=>`<tr><td>${esc(l.tanggal)}</td><td><b>${esc(l.nama_karyawan)}</b></td><td>${esc(l.shift_kode)}</td><td>${esc(l.waktu_masuk)} - ${esc(l.waktu_pulang)}</td><td>${dur(l.durasi_menit||0)}</td><td>${stPill(l.status_kehadiran)}</td><td>${l.jarak_meter!=null?'<b>📍 '+l.jarak_meter+' m</b>':'-'}</td><td>${esc(l.status_lokasi||'-')}${l.skor_wajah!=null?'<div class="mut">🙂 wajah '+l.skor_wajah+'%</div>':''}${mapA(l)}</td><td><div style="display:flex;gap:6px">${thumb(l.foto_masuk)||'-'}${thumb(l.foto_pulang)}</div></td></tr>`).join('')||`<tr><td colspan="9">${empty('Tidak ada data pada rentang ini.')}</td></tr>`}</tbody></table></div>`},
+ <div class="g p tw"><table><thead><tr><th>Tanggal</th><th>Nama</th><th>Shift</th><th>Masuk - Pulang</th><th>Durasi</th><th>Status</th><th>Jarak</th><th>Lokasi</th><th>Foto</th></tr></thead><tbody>${R.map(l=>`<tr><td>${esc(l.tanggal)}</td><td><b>${esc(l.nama_karyawan)}</b></td><td>${esc(l.shift_kode)}</td><td>${esc(l.waktu_masuk)} - ${esc(l.waktu_pulang)}</td><td>${dur(l.durasi_menit||0)}</td><td>${stPill(l.status_kehadiran)}</td><td>${l.jarak_meter!=null?'<b>📍 '+l.jarak_meter+' m</b>':'-'}</td><td>${esc(l.status_lokasi||'-')}${l.skor_wajah!=null?'<div class="mut">🙂 wajah '+l.skor_wajah+'%</div>':''}${mapA(l)}</td><td><div style="display:flex;gap:6px">${thumb(l.foto_masuk)||'-'}${thumb(l.foto_pulang)}</div>${isA()&&l.shift_kode!=='IZIN'?`<div style="margin-top:6px"><button class="btn sm w" onclick="A.fixForm('${l.id}')">Koreksi</button></div>`:''}</td></tr>`).join('')||`<tr><td colspan="9">${empty('Tidak ada data pada rentang ini.')}</td></tr>`}</tbody></table></div>`},
 async star(){if(!isA()){try{const[y,m]=S.tm.split('-').map(Number),last=new Date(y,m,0).getDate();S.tl=await D.sel('absensi','karyawan_id,nama_karyawan,tanggal,shift_kode,menit_terlambat,durasi_menit',S.tm+'-01',S.tm+'-'+pad(last))}catch(e){err(e)}}const b=$('sb');if(b)b.innerHTML=starBody()},
 annForm(){const R=starData();if(!R.length)return toast('Belum ada data absensi pada bulan ini');const T=R.slice(0,3),ex=S.anns.find(x=>x.bulan===S.tm),M3=['🥇','🥈','🥉'];
  modal(`<h3>Umumkan 3 Besar Teladan</h3><p class="mut">${blnLbl(S.tm)} • tampil di dasbor semua karyawan dan muncul sebagai pop-up saat mereka membuka aplikasi.</p>
@@ -428,6 +435,9 @@ async cancelLeave(id){const v=S.leaves.find(x=>x.id===id);if(!v)return;const ok=
  try{try{await D.upd('izin',id,{status_approval:'Dibatalkan'})}catch(e){if(/check|constraint/i.test(e.message||''))await D.upd('izin',id,{status_approval:'Ditolak'});else throw e}
   if(ok){const rows=S.logs.filter(l=>l.karyawan_id===v.karyawan_id&&l.shift_kode==='IZIN'&&l.tanggal>=v.tanggal_mulai&&l.tanggal<=v.tanggal_selesai);for(const l of rows)await D.del('absensi',l.id)}
   toast('Pengajuan dibatalkan');await refresh()}catch(e){err(e)}},
+fixForm(id){const l=S.logs.find(x=>x.id===id);if(!l)return;const e=emp(l.karyawan_id),sc=e?shiftOf(e,l.tanggal):l.shift_kode,cur=isSh(sc)?sc:l.shift_kode;
+ modal(`<h3>Koreksi Shift Absensi</h3><p class="mut">${esc(l.nama_karyawan)} • ${esc(l.tanggal)} • masuk ${esc(l.waktu_masuk)}. Status terlambat dihitung ulang sesuai shift yang dipilih.</p><label>Shift</label><select class="in" id="fx-s">${SH.map(c=>`<option value="${c}" ${c===cur?'selected':''}>${shLbl(c)}</option>`).join('')}</select><div class="f" style="margin-top:14px"><button class="btn ok" style="flex:1" onclick="A.fixSave('${id}')">Simpan & Hitung Ulang</button><button class="btn w" style="flex:0" onclick="A.close()">Batal</button></div>`)},
+async fixSave(id){const l=S.logs.find(x=>x.id===id);if(!l)return;try{await fixLog(l,$('fx-s').value);close();toast('Absensi dikoreksi');render()}catch(e){err(e)}},
 tmSet(){if($('tm').value){S.tm=$('tm').value;A.star()}},
 csv(){csvDown(repRows(),'Rekap_Absensi')},
 cfgForm(){const c=S.cfg,t=(i,l,v)=>`<div><label>${l}</label><input class="in" type="time" id="${i}" value="${v}"></div>`,n=(i,l,v)=>`<div><label>${l}</label><input class="in" type="number" step="0.5" id="${i}" value="${v}"></div>`;
